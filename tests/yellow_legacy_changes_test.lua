@@ -56,9 +56,21 @@ for _, id in ipairs({
   "DRAGONITE", "AERODACTYL", "ONIX", "KANGASKHAN", "MAROWAK", "KINGLER",
   "MACHOKE", "GOLEM", "MAGNETON", "DODRIO", "SANDSLASH", "CLOYSTER",
   "FLAREON", "MACHAMP", "PIDGEOT", "VAPOREON",
+  "GRAVELER", "HAUNTER", "GENGAR", "POLIWHIRL", "POLIWRATH",
 }) do
   seedSpecies(id)
 end
+
+-- vanilla evolution rows, so the merged view shows the hack's changes
+local function seedEvo(id, evos)
+  local rec = Data.pokemon[id]
+  rec.evolutions = evos
+end
+seedEvo("KADABRA", { { method = "TRADE", level = 1, species = "ALAKAZAM" } })
+seedEvo("MACHOKE", { { method = "TRADE", level = 1, species = "MACHAMP" } })
+seedEvo("GRAVELER", { { method = "TRADE", level = 1, species = "GOLEM" } })
+seedEvo("HAUNTER", { { method = "TRADE", level = 1, species = "GENGAR" } })
+seedEvo("POLIWHIRL", { { method = "LEVEL", level = 25, species = "POLIWRATH" } })
 
 local run = T.sdk.loadMod("mods/yellow_legacy_changes", { data = Data })
 T.eq(#run.errors, 0, "loads clean (" .. tostring(run.errors[1]) .. ")")
@@ -487,6 +499,29 @@ Runtime.emit("game.ready", { game = { save = { options = {} } } })
 T.eq(mergedTypes.DRAGON.category, "physical",
   "a persisted ON applies at game.ready")
 _G.package.loaded["src.core.Game"] = nil
+
+-- ---------- evolutions (yellow legacy evos_moves.asm) ----------
+-- vanilla trade rows become level rows at the hack's levels
+local pokemonView = run.loader.content.pokemon
+local function evoOf(id)
+  local evos = pokemonView:get(id) and pokemonView:get(id).evolutions or {}
+  return evos[1]
+end
+T.eq(evoOf("KADABRA").method, "LEVEL", "KADABRA -> ALAKAZAM by level")
+T.eq(evoOf("KADABRA").level, 42, "KADABRA evolves at 42")
+T.eq(evoOf("KADABRA").species, "ALAKAZAM", "KADABRA evolves into ALAKAZAM")
+T.eq(evoOf("MACHOKE").method, "LEVEL", "MACHOKE -> MACHAMP by level")
+T.eq(evoOf("MACHOKE").level, 38, "MACHOKE evolves at 38")
+T.eq(evoOf("MACHOKE").species, "MACHAMP", "MACHOKE evolves into MACHAMP")
+T.eq(evoOf("GRAVELER").method, "LEVEL", "GRAVELER -> GOLEM by level")
+T.eq(evoOf("GRAVELER").level, 38, "GRAVELER evolves at 38")
+T.eq(evoOf("GRAVELER").species, "GOLEM", "GRAVELER evolves into GOLEM")
+T.eq(evoOf("HAUNTER").method, "LEVEL", "HAUNTER -> GENGAR by level")
+T.eq(evoOf("HAUNTER").level, 42, "HAUNTER evolves at 42")
+T.eq(evoOf("HAUNTER").species, "GENGAR", "HAUNTER evolves into GENGAR")
+T.eq(evoOf("POLIWHIRL").method, "LEVEL", "POLIWHIRL stays a level evolution")
+T.eq(evoOf("POLIWHIRL").level, 18, "POLIWHIRL evolves at 18 (was 25)")
+T.eq(evoOf("POLIWHIRL").species, "POLIWRATH", "POLIWHIRL evolves into POLIWRATH")
 
 run.release()
 T.finish("yellow_legacy_changes")

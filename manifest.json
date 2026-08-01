@@ -1,7 +1,7 @@
 {
   "id": "yellow_legacy_changes",
   "name": "Yellow Legacy Changes",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -14,6 +14,6 @@
   "dependencies": [],
   "optional_dependencies": [],
   "conflicts": [],
-  "description": "Yellow Legacy by TSP changes: buffed/nerfed moves, rebalanced stats, rebalanced trainer and gym-leader teams, Ghost special + super-effective vs Psychic, and a MODS-menu toggle for Dragon physical.",
+  "description": "Yellow Legacy by TSP changes: buffed/nerfed moves, rebalanced stats, trade evolutions become level evolutions, rebalanced trainer and gym-leader teams, Ghost special + super-effective vs Psychic, and a MODS-menu toggle for Dragon physical.",
   "github": "ShaneMcGovernIE/yellow_legacy_changes"
 }

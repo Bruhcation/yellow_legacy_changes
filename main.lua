@@ -1,7 +1,8 @@
 -- Yellow Legacy by TSP -- move changes (pages 11-14), stat changes
--- (pages 15-19), and trainer / gym-leader team updates from the design
--- PDF and the cRz-Shadows/Pokemon_Yellow_Legacy disassembly.  Values are
--- the NEW numbers; the patches touch only the fields the document changes.
+-- (pages 15-19), trainer / gym-leader team updates and evolution changes
+-- from the design PDF and the cRz-Shadows/Pokemon_Yellow_Legacy
+-- disassembly.  Values are the NEW numbers; the patches touch only the
+-- fields the document changes.
 --
 -- Engine behavior changes that the data cannot express ride on wrapped
 -- seams (installed on game.ready, the nuzlocke pattern):
@@ -364,6 +365,21 @@ return function(mod)
     mod.content.moves:patch(id, patch)
   end
   for id, patch in pairs(STATS) do
+    mod.content.pokemon:patch(id, patch)
+  end
+
+  -- Yellow Legacy evolution changes (data/pokemon/evos_moves.asm): the
+  -- four trade evolutions become level evolutions, and Poliwhirl's
+  -- Poliwrath evolution comes earlier.  Each of these species has exactly
+  -- one evolution row, so the whole field is replaced.
+  local EVOS = {
+    KADABRA = { evolutions = { { method = "LEVEL", level = 42, species = "ALAKAZAM" } } },
+    MACHOKE = { evolutions = { { method = "LEVEL", level = 38, species = "MACHAMP" } } },
+    GRAVELER = { evolutions = { { method = "LEVEL", level = 38, species = "GOLEM" } } },
+    HAUNTER = { evolutions = { { method = "LEVEL", level = 42, species = "GENGAR" } } },
+    POLIWHIRL = { evolutions = { { method = "LEVEL", level = 18, species = "POLIWRATH" } } },
+  }
+  for id, patch in pairs(EVOS) do
     mod.content.pokemon:patch(id, patch)
   end
 

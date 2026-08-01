@@ -136,8 +136,9 @@ moved from vanilla.
 
 ## Notes
 
-- Learnset/availability changes are not included — the document's pages
-  11-19 only give move numbers and stats.
+- Trade evolutions become level evolutions, like the hack: Kadabra at 42,
+  Machoke at 38, Graveler at 38, Haunter at 42.  Poliwhirl also evolves
+  into Poliwrath at 18 instead of 25.
 - PSYWAVE keeps its vanilla damage formula; only its accuracy is changed.
 - Stat patches are partial: a stat the document does not change is
   untouched.

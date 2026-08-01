@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.0] - 2026-08-01
+
+### Added
+
+- Evolution changes from the Yellow Legacy disassembly
+  (`data/pokemon/evos_moves.asm`): the four trade evolutions become level
+  evolutions — KADABRA at 42, MACHOKE at 38, GRAVELER at 38, HAUNTER at 42 —
+  and POLIWHIRL evolves into POLIWRATH at 18 (was 25).
+
 ## [1.4.0] - 2026-08-01
 
 ### Added
