@@ -6,6 +6,7 @@
 package.path = "./?.lua;./?/init.lua;" .. package.path
 
 local T = require("tests.modkit")
+local Runtime = require("src.mods.Runtime")
 local Data = require("src.core.Data")
 Data:load()
 
@@ -335,6 +336,48 @@ T.check(resolved.encounters["NO_SUCH_MAP"] == nil,
   "an unknown map resolves to nothing")
 T.eq(counts.species, 1, "one unknown species counted")
 T.eq(counts.maps, 1, "one unknown map counted")
+
+-- ---------- type chart changes ----------
+
+local typeChart = run.loader.content.type_chart
+T.eq(typeChart:get("GHOST").category, "special",
+  "GHOST moves use the special stat (Yellow Legacy)")
+T.eq(typeChart:get("GHOST>PSYCHIC_TYPE").multiplier, 20,
+  "GHOST is super effective against PSYCHIC")
+
+local mergedTypes = run.data.type_chart and run.data.type_chart.types
+T.check(mergedTypes ~= nil and mergedTypes.GHOST ~= nil,
+  "the merged view carries the type records")
+T.eq(mergedTypes.GHOST.category, "special",
+  "the merged GHOST record is special")
+
+-- ---------- dragon physical toggle ----------
+
+local exports = run.loader.exports.yellow_legacy_changes
+T.check(exports ~= nil and exports.setDragonPhysical ~= nil,
+  "setDragonPhysical is exported for testing")
+T.check(exports.setDragonPhysical(run.data, true),
+  "the toggle applies when the record exists")
+T.eq(mergedTypes.DRAGON.category, "physical", "DRAGON is physical when ON")
+exports.setDragonPhysical(run.data, false)
+T.eq(mergedTypes.DRAGON.category, "special", "DRAGON returns to special when OFF")
+
+-- the OPTIONS row toggles the option and applies it
+local rows = Runtime.call("ui.options.rows",
+  function(_, r) return r end,
+  { data = run.data, save = { options = {} } }, { { id = "text_speed" } })
+T.eq(#rows, 2, "the options hook added exactly one row")
+local row = rows[2]
+T.eq(row.id, "dragon_physical", "the row is the dragon toggle")
+T.eq(row.label, "DRAGON PHYS", "the row label is clear")
+local game = { data = run.data, save = { options = {} } }
+T.eq(row.value(game), "OFF", "defaults to OFF (Gen 1 faithful)")
+local changed = row.step(game, 1)
+T.eq(changed, true, "stepping reports a change so the engine persists")
+T.eq(game.save.options.dragonPhysical, 1, "step writes the option")
+T.eq(row.value(game), "ON", "value follows the option")
+T.eq(mergedTypes.DRAGON.category, "physical",
+  "stepping applies the switch immediately")
 
 run.release()
 T.finish("yellow_legacy_changes")

@@ -10,10 +10,14 @@ return {
       "type changes: GUST Flying, CUT Bug, EGG_BOMB Grass, KARATE_CHOP Fighting, SLAM Dragon",
       "effect changes: DIZZY_PUNCH 10% confuse, TRI_ATTACK/FIRE_PUNCH 30% burn, ROCK_SLIDE/WATERFALL/SLAM 10% flinch, RAZOR_WIND/SKULL_BASH recharge like Hyper Beam, SKY_ATTACK/NIGHT_SHADE no longer special, TRANSFORM +1 priority",
       "FOCUS ENERGY functional at exactly 2x crit rate; LEECH SEED drains a flat 1/8",
+      "GHOST attacks use the Special stat; Ghost is now super effective against Psychic (fixes the Gen 1 chart bug)",
+      "an OPTIONS toggle (DRAGON PHYS) switches DRAGON moves to the physical stat, persisted in options.lua",
       "27 species base stats rebalanced per pages 15-19",
       "learnsets for all 151 species, TM/HM lists for 146, encounter tables for 57 maps (Data.xlsx)",
     },
-    added = {},
+    added = {
+      "DRAGON PHYS row in the OPTIONS menu (default OFF = Gen 1 faithful)",
+    },
     known = {
       "encounter rates stay vanilla; only slot tables change",
       "PSYWAVE keeps its vanilla damage formula (the document only specifies its accuracy)",

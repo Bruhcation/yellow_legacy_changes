@@ -9,6 +9,16 @@
   FOCUS ENERGY functional at 2x crit, LEECH SEED flat 1/8 drain.
 - Stat changes from pages 15-19: 27 species base stats rebalanced.
 
+## [1.2.0] - 2026-08-01
+
+### Added
+
+- GHOST attacks now use the Special stat (Yellow Legacy type change).
+- Ghost is now super effective against Psychic, fixing the Gen 1 chart
+  bug that made Psychic immune.
+- A **DRAGON PHYS** toggle in OPTIONS: switches DRAGON moves to the
+  physical stat at runtime; persisted in options.lua, default OFF.
+
 ## [1.1.0] - 2026-08-01
 
 ### Added

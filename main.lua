@@ -315,6 +315,14 @@ return function(mod)
     mod.content.pokemon:patch(id, patch)
   end
 
+  -- Yellow Legacy type changes: GHOST attacks become special, and the
+  -- Gen 1 chart bug that made Psychic immune to Ghost is fixed (Ghost is
+  -- now super effective against Psychic).  Patch, not override: the type
+  -- records and chart rows come from the engine's own registrations, and
+  -- a total conversion that replaced them wins over this op.
+  mod.content.type_chart:patch("GHOST", { category = "special" })
+  mod.content.type_chart:patch("GHOST>PSYCHIC_TYPE", { multiplier = 20 })
+
   applyLegacyTables(mod)
 
   mod.events:on("game.ready", function()
@@ -375,5 +383,58 @@ return function(mod)
     end
   end)
 
-  mod.exports = { applyTables = applyTables, resolveTables = resolveTables }
+  -- "Dragon physical" toggle: flips DRAGON moves from the Gen 1 special
+  -- stat to physical at runtime.  The merged type records are live tables
+  -- (TypeChart.category reads the record on every call), so the switch
+  -- applies instantly to damage.  Persisted in options.lua under
+  -- save.options.dragonPhysical; default OFF = Gen 1 faithful.
+  local function setDragonPhysical(data, on)
+    local types = data and data.type_chart and data.type_chart.types
+    local dragon = types and types.DRAGON
+    if dragon then dragon.category = on and "physical" or "special" end
+    return dragon ~= nil
+  end
+
+  local function applyDragonOption(opts)
+    local ok, Game = pcall(require, "src.core.Game")
+    local data = ok and Game and Game.data
+    if data then setDragonPhysical(data, opts and opts.dragonPhysical == 1) end
+  end
+
+  mod.events:on("game.ready", function(ev)
+    applyDragonOption(ev and ev.game and ev.game.save and ev.game.save.options)
+  end)
+  mod.events:on("save.created", function(ev)
+    applyDragonOption(ev and ev.save and ev.save.options)
+  end)
+  mod.events:on("save.loaded", function(ev)
+    applyDragonOption(ev and ev.save and ev.save.options)
+  end)
+
+  -- the toggle row in OPTIONS; step flips it, the engine persists via
+  -- writeOptions when the menu closes over the change
+  mod.hooks:wrap("ui.options.rows", function(next, game, rows)
+    local out = next(game, rows)
+    if type(out) ~= "table" then return out end
+    out[#out + 1] = {
+      id = "dragon_physical",
+      label = "DRAGON PHYS",
+      value = function(g)
+        return (g.save.options.dragonPhysical == 1) and "ON" or "OFF"
+      end,
+      step = function(g)
+        local on = not (g.save.options.dragonPhysical == 1)
+        g.save.options.dragonPhysical = on and 1 or 0
+        setDragonPhysical(g.data, on)
+        return true
+      end,
+    }
+    return out
+  end)
+
+  mod.exports = {
+    applyTables = applyTables,
+    resolveTables = resolveTables,
+    setDragonPhysical = setDragonPhysical,
+  }
 end
