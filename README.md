@@ -148,6 +148,10 @@ data.
 - Trade evolutions become level evolutions, like the hack: Kadabra at 42,
   Machoke at 38, Graveler at 38, Haunter at 42.  Poliwhirl also evolves
   into Poliwrath at 18 instead of 25.
+- The rival teams are patched **only on Yellow**.  On Red or Blue the
+  rival keeps the normal counter-pick starter teams (the engine picks the
+  party from your starter choice), so no Eevee and no Yellow Legacy rival
+  content shows up there — including the Champion rematch team.
 - PSYWAVE keeps its vanilla damage formula; only its accuracy is changed.
 - Stat patches are partial: a stat the document does not change is
   untouched.

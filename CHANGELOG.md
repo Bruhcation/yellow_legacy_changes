@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.7.0] - 2026-08-01
+
+### Changed
+
+- The rival classes (OPP_RIVAL1/2/3) are now patched only when the game
+  is Yellow.  On Red or Blue the rival keeps the normal counter-pick
+  starter teams — the engine's `rival_battle` command selects the party
+  from the player's starter choice — and the Yellow Legacy Eevee teams
+  (including the Champion rematch team) never apply.  The hack is a
+  Yellow hack; its Eevee rival was leaking into Red/Blue playthroughs.
+
 ## [1.6.0] - 2026-08-01
 
 ### Added

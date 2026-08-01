@@ -4,6 +4,12 @@
 -- disassembly.  Values are the NEW numbers; the patches touch only the
 -- fields the document changes.
 --
+-- Yellow Legacy is a Yellow hack: its rival parties are Eevee-based.  On
+-- Red or Blue the rival must keep the normal counter-pick starter teams
+-- (the engine's rival_battle command selects the party from the player's
+-- starter choice), so the rival classes -- including their rematch teams
+-- -- are only patched when the running game is Yellow.
+--
 -- Engine behavior changes that the data cannot express ride on wrapped
 -- seams (installed on game.ready, the nuzlocke pattern):
 --   * FOCUS ENERGY is functional: exactly 2x the usual crit rate, instead
@@ -17,6 +23,9 @@
 -- display names are resolved against the player's imported data at load,
 -- so the files work on any build without shipping a name table.
 local applyTables, resolveTables -- forward: applyLegacyTables reads the files then applies
+-- whether the rival patches landed (true when the running game is Yellow);
+-- read by applyTables, exported for tests via the exports table
+local rivalPatchEnabled = false
 local function applyLegacyTables(mod)
   local merged = {}
   for _, name in ipairs({ "learnsets.lua", "trainers.lua", "rematches.lua" }) do
@@ -202,6 +211,15 @@ applyTables = function(mod, data)
   local resolved, counts = resolveTables(mod.content, data)
   if resolved == nil then return end
 
+  -- the hack is Yellow-based; its rival teams are Eevee parties, which on
+  -- Red/Blue would break the rival's normal counter-pick starter
+  -- selection (rival_battle picks the party from the player's starter).
+  -- The rival classes are patched only when the running game is Yellow.
+  local GameVersion = require("src.core.GameVersion")
+  rivalPatchEnabled = GameVersion.isYellow()
+  local RIVAL_CLASSES = { OPP_RIVAL1 = true, OPP_RIVAL2 = true,
+                          OPP_RIVAL3 = true }
+
   -- learnsets: replace wholesale (level 1 entries also seed level1Moves)
   for id, entry in pairs(resolved.learnsets) do
     local patch = { learnset = entry.learnset }
@@ -242,23 +260,32 @@ applyTables = function(mod, data)
   -- trainers: whole-party replacement per class (party indexes preserved,
   -- so every battle that references an index still maps to the right team)
   for id, entry in pairs(resolved.trainers) do
-    mod.content.trainers:patch(id, entry)
+    if RIVAL_CLASSES[id] and not rivalPatchEnabled then
+      -- Red/Blue: keep the imported counter-pick starter teams untouched
+    else
+      mod.content.trainers:patch(id, entry)
+    end
   end
 
   -- rematches: append the hack's rematch team to the class's parties and
   -- mark its index, so a trainer-rematch mod can pick the team.  Only
   -- classes this mod already rebalances are touched; the rematch team
-  -- never takes index 1 of a class it does not own.
+  -- never takes index 1 of a class it does not own.  Rival rematch teams
+  -- are Yellow Legacy content, so they follow the same version gate.
   for id, team in pairs(resolved.rematches) do
-    local entry = resolved.trainers[id]
-    if not entry then
-      mod.log:warn("rematch team for %s skipped (class not rebalanced by this mod)", id)
+    if RIVAL_CLASSES[id] and not rivalPatchEnabled then
+      -- Red/Blue: the rival keeps its normal teams, rematch included
     else
-      local parties = entry.parties
-      local patch = { parties = {}, rematchIndex = #parties + 1 }
-      for i = 1, #parties do patch.parties[i] = parties[i] end
-      patch.parties[#patch.parties + 1] = team
-      mod.content.trainers:patch(id, patch)
+      local entry = resolved.trainers[id]
+      if not entry then
+        mod.log:warn("rematch team for %s skipped (class not rebalanced by this mod)", id)
+      else
+        local parties = entry.parties
+        local patch = { parties = {}, rematchIndex = #parties + 1 }
+        for i = 1, #parties do patch.parties[i] = parties[i] end
+        patch.parties[#patch.parties + 1] = team
+        mod.content.trainers:patch(id, patch)
+      end
     end
   end
 
@@ -528,5 +555,6 @@ return function(mod)
     applyTables = applyTables,
     resolveTables = resolveTables,
     setDragonPhysical = setDragonPhysical,
+    rivalPatchEnabled = rivalPatchEnabled,
   }
 end

@@ -37,6 +37,25 @@ Data.trainers.OPP_MISTY = {
     { { level = 18, species = "STARYU" }, { level = 21, species = "STARMIE" } },
   },
 }
+-- seed a Red/Blue-style rival base: the three counter-pick starter teams
+-- (ordered by the player's starter choice), which must survive the mod on
+-- Red/Blue and only be replaced by the Eevee teams when running Yellow
+Data.trainers.OPP_RIVAL1 = {
+  id = "OPP_RIVAL1", name = "RIVAL", index = 1, baseMoney = 0,
+  parties = {
+    { { level = 5, species = "BULBASAUR" } },
+    { { level = 5, species = "CHARMANDER" } },
+    { { level = 5, species = "SQUIRTLE" } },
+  },
+}
+Data.trainers.OPP_RIVAL3 = {
+  id = "OPP_RIVAL3", name = "RIVAL", index = 8, baseMoney = 200,
+  parties = {
+    { { level = 63, species = "ALAKAZAM" }, { level = 65, species = "JOLTEON" } },
+    { { level = 62, species = "MAGNETON" }, { level = 65, species = "FLAREON" } },
+    { { level = 60, species = "MACHAMP" }, { level = 65, species = "VAPOREON" } },
+  },
+}
 -- minimal species records for the trainer-team species the merged-view
 -- assertions touch (the fixture itself only carries FIX_* species)
 local function seedSpecies(id)
@@ -58,6 +77,8 @@ for _, id in ipairs({
   "FLAREON", "MACHAMP", "PIDGEOT", "VAPOREON",
   "GRAVELER", "HAUNTER", "GENGAR", "POLIWHIRL", "POLIWRATH",
   "SEADRA", "GOLDUCK", "LAPRAS", "BLASTOISE",
+  "EEVEE", "SPEAROW", "RATTATA", "BELLSPROUT",
+  "CHARMANDER", "SQUIRTLE", "BULBASAUR",
 }) do
   seedSpecies(id)
 end
@@ -76,6 +97,8 @@ seedEvo("POLIWHIRL", { { method = "LEVEL", level = 25, species = "POLIWRATH" } }
 local run = T.sdk.loadMod("mods/yellow_legacy_changes", { data = Data })
 T.eq(#run.errors, 0, "loads clean (" .. tostring(run.errors[1]) .. ")")
 T.eq(run.mod and run.mod.state, "loaded", "reached the loaded state")
+local exports = run.loader.exports.yellow_legacy_changes
+T.check(exports ~= nil, "exports reachable")
 
 local moves = run.loader.content.moves
 local pokemon = run.loader.content.pokemon
@@ -303,12 +326,20 @@ T.eq(rm[1].species, "SEADRA", "SEADRA leads the rematch team")
 T.eq(rm[6].level, 65, "the anchor sits at 65")
 T.eq(rm[6].species, "STARMIE", "STARMIE anchors the rematch team")
 
+-- on Red/Blue (the test's default process state) the rival keeps its
+-- counter-pick starter teams and gains no Yellow Legacy content
+T.eq(exports.rivalPatchEnabled, false, "rival patches are off on Red/Blue")
+local rival = trainers:get("OPP_RIVAL1")
+T.eq(rival.parties[1][1].species, "BULBASAUR",
+  "Red/Blue rival team 1 is untouched (no EEVEE)")
+T.eq(rival.parties[2][1].species, "CHARMANDER",
+  "Red/Blue rival team 2 is untouched")
+T.eq(rival.parties[3][1].species, "SQUIRTLE",
+  "Red/Blue rival team 3 is untouched")
 local rival3 = trainers:get("OPP_RIVAL3")
-T.eq(rival3.rematchIndex, 4, "RIVAL3's rematch team sits after its three teams")
-T.eq(#rival3.parties, 4, "RIVAL3 gains a fourth team")
-T.eq(rival3.parties[4][1].level, 77, "the champion rematch leads at 77")
-T.eq(rival3.parties[4][1].species, "ALAKAZAM", "the champion rematch opens with ALAKAZAM")
-T.eq(rival3.parties[4][6].level, 77, "the champion rematch closes at 77")
+T.eq(rival3.rematchIndex, nil,
+  "RIVAL3 gains no rematch marker on Red/Blue")
+T.eq(#rival3.parties, 3, "RIVAL3 keeps exactly its three counter-pick teams")
 
 local other = trainers:get("OPP_YOUNGSTER")
 T.eq(other and other.rematchIndex, nil, "classes without a rematch team carry no marker")
@@ -327,10 +358,8 @@ T.eq(trainers:get("OPP_SABRINA").parties[1][1].species, "ABRA",
 T.eq(#trainers:get("OPP_GIOVANNI").parties, 3, "Giovanni keeps three fights")
 T.eq(trainers:get("OPP_GIOVANNI").parties[3][1].level, 53,
   "Viridian Giovanni: DUGTRIO 53 (was 50)")
-T.eq(#trainers:get("OPP_RIVAL3").parties, 4,
-  "champion rival keeps three teams plus the rematch team")
 T.eq(trainers:get("OPP_RIVAL3").parties[1][1].species, "ALAKAZAM",
-  "champion rival leads ALAKAZAM 63")
+  "Red/Blue champion rival leads ALAKAZAM 63 (imported team, untouched)")
 T.eq(trainers:get("OPP_LANCE").parties[1][1].species, "DRAGONITE",
   "Lance leads DRAGONITE 61 (was GYARADOS 58)")
 T.eq(trainers:get("OPP_LANCE").parties[1][3].species, "CHARIZARD",
@@ -487,7 +516,7 @@ T.eq(mergedTypes.GHOST.category, "special",
 
 -- ---------- dragon physical toggle (MODS menu per-mod options) ----------
 
-local exports = run.loader.exports.yellow_legacy_changes
+
 T.check(exports ~= nil and exports.setDragonPhysical ~= nil,
   "setDragonPhysical is exported for testing")
 T.check(exports.setDragonPhysical(run.data, true),
@@ -546,6 +575,59 @@ T.eq(evoOf("HAUNTER").species, "GENGAR", "HAUNTER evolves into GENGAR")
 T.eq(evoOf("POLIWHIRL").method, "LEVEL", "POLIWHIRL stays a level evolution")
 T.eq(evoOf("POLIWHIRL").level, 18, "POLIWHIRL evolves at 18 (was 25)")
 T.eq(evoOf("POLIWHIRL").species, "POLIWRATH", "POLIWHIRL evolves into POLIWRATH")
+
+-- ---------- on Yellow the rival patches and rematch team apply ----------
+
+local GameVersion = require("src.core.GameVersion")
+GameVersion.set("yellow")
+-- a plain fixture table (no Data __index inheritance): the first loader
+-- wrote its merged view into the module Data, and an inheriting table
+-- would leak that into this loader's base and collide with its builtins
+local fresh = require("tests.fixture_data").load()
+local function seedYellowSpecies(id)
+  fresh.pokemon[id] = {
+    id = id, name = id, index = 1, dex = 1,
+    baseStats = { hp = 50, attack = 50, defense = 50, speed = 50, special = 50 },
+    catchRate = 100, baseExp = 100, growthRate = "MEDIUM_FAST",
+    level1Moves = {}, tmhm = {}, learnset = {}, evolutions = {},
+  }
+end
+for _, id in ipairs({
+  "EEVEE", "SPEAROW", "RATTATA", "BELLSPROUT",
+  "ALAKAZAM", "MACHAMP", "GYARADOS", "PIDGEOT", "EXEGGUTOR", "ARCANINE",
+  "RHYDON", "JOLTEON", "MAGNETON", "DODRIO", "SANDSLASH", "CLOYSTER",
+  "FLAREON", "NINETALES", "VICTREEBEL", "VAPOREON",
+  "KADABRA", "MACHOKE", "GRAVELER", "HAUNTER", "GOLEM", "GENGAR",
+  "POLIWHIRL", "POLIWRATH",
+}) do seedYellowSpecies(id) end
+fresh.trainers.OPP_RIVAL3 = {
+  id = "OPP_RIVAL3", name = "RIVAL", index = 8, baseMoney = 200,
+  parties = {
+    { { level = 63, species = "ALAKAZAM" }, { level = 65, species = "JOLTEON" } },
+    { { level = 62, species = "MAGNETON" }, { level = 65, species = "FLAREON" } },
+    { { level = 60, species = "MACHAMP" }, { level = 65, species = "VAPOREON" } },
+  },
+}
+local runYellow = T.sdk.loadMod("mods/yellow_legacy_changes", { data = fresh })
+T.eq(#runYellow.errors, 0,
+  "yellow load is clean (" .. tostring(runYellow.errors[1]) .. ")")
+local yellowExports = runYellow.loader.exports.yellow_legacy_changes
+T.eq(yellowExports.rivalPatchEnabled, true, "rival patches are on for Yellow")
+local yellowTrainers = runYellow.loader.content.trainers
+local yRival1 = yellowTrainers:get("OPP_RIVAL1")
+T.eq(yRival1.parties[1][1].species, "EEVEE",
+  "Yellow rival team 1 is the Eevee starter")
+T.eq(yRival1.parties[1][1].level, 5, "the Eevee opens at level 5")
+T.eq(yRival1.parties[3][4].species, "EEVEE",
+  "the final RIVAL1 team still carries the Eevee")
+local yRival3 = yellowTrainers:get("OPP_RIVAL3")
+T.eq(yRival3.rematchIndex, 4, "RIVAL3 marks its rematch team on Yellow")
+T.eq(#yRival3.parties, 4, "RIVAL3 gains the rematch team on Yellow")
+T.eq(yRival3.parties[4][1].species, "ALAKAZAM",
+  "the champion rematch opens with ALAKAZAM 77")
+T.eq(yRival3.parties[4][1].level, 77, "the champion rematch leads at 77")
+runYellow.release()
+GameVersion.set("red")
 
 run.release()
 T.finish("yellow_legacy_changes")
