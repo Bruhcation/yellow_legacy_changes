@@ -383,11 +383,12 @@ return function(mod)
     end
   end)
 
-  -- "Dragon physical" toggle: flips DRAGON moves from the Gen 1 special
-  -- stat to physical at runtime.  The merged type records are live tables
+  -- "Dragon physical" toggle in the MODS menu: the per-mod options
+  -- auto-UI renders DRAGON PHYS from the schema below, persists the value
+  -- in options.lua under options.modOptions, and fires mod.options_changed
+  -- when the player flips it.  The merged type records are live tables
   -- (TypeChart.category reads the record on every call), so the switch
-  -- applies instantly to damage.  Persisted in options.lua under
-  -- save.options.dragonPhysical; default OFF = Gen 1 faithful.
+  -- applies instantly to damage.  Default OFF = Gen 1 faithful.
   local function setDragonPhysical(data, on)
     local types = data and data.type_chart and data.type_chart.types
     local dragon = types and types.DRAGON
@@ -395,41 +396,27 @@ return function(mod)
     return dragon ~= nil
   end
 
-  local function applyDragonOption(opts)
+  mod.options:define({
+    { key = "dragonPhysical", type = "toggle", label = "DRAGON PHYS",
+      default = false },
+  })
+
+  local function applyDragonOption()
     local ok, Game = pcall(require, "src.core.Game")
     local data = ok and Game and Game.data
-    if data then setDragonPhysical(data, opts and opts.dragonPhysical == 1) end
+    if data then setDragonPhysical(data, mod.options:get("dragonPhysical")) end
   end
 
-  mod.events:on("game.ready", function(ev)
-    applyDragonOption(ev and ev.game and ev.game.save and ev.game.save.options)
-  end)
-  mod.events:on("save.created", function(ev)
-    applyDragonOption(ev and ev.save and ev.save.options)
-  end)
-  mod.events:on("save.loaded", function(ev)
-    applyDragonOption(ev and ev.save and ev.save.options)
+  mod.events:on("mod.options_changed", function(ev)
+    if ev and ev.mod == mod.id and ev.key == "dragonPhysical" then
+      local ok, Game = pcall(require, "src.core.Game")
+      local data = ok and Game and Game.data
+      if data then setDragonPhysical(data, ev.value == true) end
+    end
   end)
 
-  -- the toggle row in OPTIONS; step flips it, the engine persists via
-  -- writeOptions when the menu closes over the change
-  mod.hooks:wrap("ui.options.rows", function(next, game, rows)
-    local out = next(game, rows)
-    if type(out) ~= "table" then return out end
-    out[#out + 1] = {
-      id = "dragon_physical",
-      label = "DRAGON PHYS",
-      value = function(g)
-        return (g.save.options.dragonPhysical == 1) and "ON" or "OFF"
-      end,
-      step = function(g)
-        local on = not (g.save.options.dragonPhysical == 1)
-        g.save.options.dragonPhysical = on and 1 or 0
-        setDragonPhysical(g.data, on)
-        return true
-      end,
-    }
-    return out
+  mod.events:on("game.ready", function()
+    applyDragonOption()
   end)
 
   mod.exports = {

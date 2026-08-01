@@ -6,8 +6,8 @@ Applies the **move changes** and **stat changes**
 Try it: enable the mod, then check a rebalanced mon's stats in the
 Pokédex, or fight with a buffed move (Solar Beam 180, Explosion 250,
 Twineedle 40x2...). Ghost attacks now use the Special stat and are
-super effective against Psychic; OPTIONS > **DRAGON PHYS** flips
-Dragon moves to the physical stat (persisted, default OFF).
+super effective against Psychic; the **DRAGON PHYS** toggle in MODS > yellow_legacy_changes flips Dragon
+moves to the physical stat (persisted, default OFF).
 
 Tables show the **new values**; `(+X)` / `(-X)` marks how much the value
 moved from vanilla.

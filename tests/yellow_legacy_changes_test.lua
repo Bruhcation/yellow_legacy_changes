@@ -351,7 +351,7 @@ T.check(mergedTypes ~= nil and mergedTypes.GHOST ~= nil,
 T.eq(mergedTypes.GHOST.category, "special",
   "the merged GHOST record is special")
 
--- ---------- dragon physical toggle ----------
+-- ---------- dragon physical toggle (MODS menu per-mod options) ----------
 
 local exports = run.loader.exports.yellow_legacy_changes
 T.check(exports ~= nil and exports.setDragonPhysical ~= nil,
@@ -362,22 +362,33 @@ T.eq(mergedTypes.DRAGON.category, "physical", "DRAGON is physical when ON")
 exports.setDragonPhysical(run.data, false)
 T.eq(mergedTypes.DRAGON.category, "special", "DRAGON returns to special when OFF")
 
--- the OPTIONS row toggles the option and applies it
-local rows = Runtime.call("ui.options.rows",
-  function(_, r) return r end,
-  { data = run.data, save = { options = {} } }, { { id = "text_speed" } })
-T.eq(#rows, 2, "the options hook added exactly one row")
-local row = rows[2]
-T.eq(row.id, "dragon_physical", "the row is the dragon toggle")
-T.eq(row.label, "DRAGON PHYS", "the row label is clear")
-local game = { data = run.data, save = { options = {} } }
-T.eq(row.value(game), "OFF", "defaults to OFF (Gen 1 faithful)")
-local changed = row.step(game, 1)
-T.eq(changed, true, "stepping reports a change so the engine persists")
-T.eq(game.save.options.dragonPhysical, 1, "step writes the option")
-T.eq(row.value(game), "ON", "value follows the option")
+-- the mod declares a toggle row in the MODS menu options schema
+local schema = run.loader.optionSchemas.yellow_legacy_changes
+T.check(type(schema) == "table" and #schema == 1,
+  "the mod defines one options row")
+T.eq(schema[1].key, "dragonPhysical", "the row is the dragon toggle")
+T.eq(schema[1].type, "toggle", "the row is a toggle")
+T.eq(schema[1].label, "DRAGON PHYS", "the row label is clear")
+T.eq(schema[1].default, false, "defaults to OFF (Gen 1 faithful)")
+
+-- flipping it in the manager applies the switch through the event
+_G.package.loaded["src.core.Game"] = { data = run.data }
+run.loader.events:emit("mod.options_changed",
+  { mod = "yellow_legacy_changes", key = "dragonPhysical", value = true })
 T.eq(mergedTypes.DRAGON.category, "physical",
-  "stepping applies the switch immediately")
+  "mod.options_changed applies DRAGON physical")
+run.loader.events:emit("mod.options_changed",
+  { mod = "yellow_legacy_changes", key = "dragonPhysical", value = false })
+T.eq(mergedTypes.DRAGON.category, "special",
+  "mod.options_changed restores DRAGON special")
+
+-- a stored option wins over the schema default on boot
+run.loader.modOptions.yellow_legacy_changes = { dragonPhysical = true }
+_G.package.loaded["src.core.Game"] = { data = run.data }
+Runtime.emit("game.ready", { game = { save = { options = {} } } })
+T.eq(mergedTypes.DRAGON.category, "physical",
+  "a persisted ON applies at game.ready")
+_G.package.loaded["src.core.Game"] = nil
 
 run.release()
 T.finish("yellow_legacy_changes")
