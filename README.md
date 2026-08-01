@@ -134,15 +134,20 @@ moved from vanilla.
 - Species and move names are resolved against your imported data at load,
   so the workbook's display names always map to the right ids.
 
+## Rematch teams
+
+The hack's rematch teams (the seven gym leaders, the Elite Four and the
+Champion, levels 64-77) ship as extra party indexes marked
+`rematchIndex`.  They only become reachable with a trigger mod that reads
+the marker: **[Trainer Rematch](https://github.com/ShaneMcGovernIE/trainer_rematch)
+is required to fight them** — without it the teams stay dormant in the
+data.
+
 ## Notes
 
 - Trade evolutions become level evolutions, like the hack: Kadabra at 42,
   Machoke at 38, Graveler at 38, Haunter at 42.  Poliwhirl also evolves
   into Poliwrath at 18 instead of 25.
-- The hack's rematch teams (gym leaders, Elite Four and Champion, levels
-  64-77) ship as extra party indexes marked `rematchIndex`.  Pair this mod
-  with a trainer-rematch mod that reads the marker (e.g. Trainer Rematch
-  0.2.0+) to fight them; without one, the teams stay dormant in the data.
 - PSYWAVE keeps its vanilla damage formula; only its accuracy is changed.
 - Stat patches are partial: a stat the document does not change is
   untouched.
