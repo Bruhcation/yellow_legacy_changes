@@ -1,0 +1,19 @@
+{
+  "id": "yellow_legacy_changes",
+  "name": "Yellow Legacy Changes",
+  "version": "1.0.0",
+  "api": 2,
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "BALANCE",
+  "game_version": ">=0.0.0-0 <2.0.0",
+  "priority": 100,
+  "permissions": [
+    "engine_internals"
+  ],
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "description": "Applies the move changes (pages 11-14) and stat changes (pages 15-19) from Yellow Legacy by TSP: buffed/nerfed moves, new types and effects, and rebalanced base stats.",
+  "github": "ShaneMcGovernIE/yellow_legacy_changes"
+}

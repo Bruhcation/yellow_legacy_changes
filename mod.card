@@ -1,0 +1,26 @@
+-- Sharing metadata, read by tooling and the manager detail pane only.
+return {
+  summary = "Yellow Legacy (TSP) move + stat changes from the PDF, pages 11-19.",
+  author = "Pokemon Gen 1 Recompilation Project",
+  contact = "https://github.com/bryanthaboi/gen1recomp",
+  tags = { "balance", "ruleset", "data-only" },
+  differences = {
+    changed = {
+      "73 moves rebalanced (power, accuracy, pp) per pages 11-14",
+      "type changes: GUST Flying, CUT Bug, EGG_BOMB Grass, KARATE_CHOP Fighting, SLAM Dragon",
+      "effect changes: DIZZY_PUNCH 10% confuse, TRI_ATTACK/FIRE_PUNCH 30% burn, ROCK_SLIDE/WATERFALL/SLAM 10% flinch, RAZOR_WIND/SKULL_BASH recharge like Hyper Beam, SKY_ATTACK/NIGHT_SHADE no longer special, TRANSFORM +1 priority",
+      "FOCUS ENERGY functional at exactly 2x crit rate; LEECH SEED drains a flat 1/8",
+      "27 species base stats rebalanced per pages 15-19",
+    },
+    added = {},
+    known = {
+      "learnset/availability changes from the document are not included (not part of these pages)",
+      "PSYWAVE keeps its vanilla damage formula (the document only specifies its accuracy)",
+      "stat patches write the new values; unpatched stats are untouched",
+    },
+  },
+  credits = {
+    { who = "TheSmithPlays (TSP)", for_ = "the Yellow Legacy design document this mod implements" },
+  },
+  compat = { engine = ">=1.0.0 <2.0.0", modApi = 2 },
+}
