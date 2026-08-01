@@ -19,7 +19,7 @@
 local applyTables, resolveTables -- forward: applyLegacyTables reads the files then applies
 local function applyLegacyTables(mod)
   local merged = {}
-  for _, name in ipairs({ "learnsets.lua", "trainers.lua" }) do
+  for _, name in ipairs({ "learnsets.lua", "trainers.lua", "rematches.lua" }) do
     local source = mod:read(name)
     if not source then
       mod.log:error("%s missing from %s -- reinstall the mod", name, mod.path)
@@ -80,7 +80,7 @@ resolveTables = function(content, data)
   end
 
   local out = { learnsets = {}, tmhm = {}, encounters = {}, rods = {},
-                trainers = {} }
+                trainers = {}, rematches = {} }
 
   for name, entries in pairs(data.learnsets or {}) do
     local id = speciesByName(name)
@@ -171,6 +171,26 @@ resolveTables = function(content, data)
     end
   end
 
+  -- rematches: the hack's "; Rematch" teams, same resolution as trainer
+  -- parties (ROM constants); a team with any unknown species is dropped
+  -- whole, like a trainer class
+  for id, team in pairs(data.rematches or {}) do
+    local ok, slots = true, {}
+    for _, s in ipairs(team) do
+      local sp = speciesByConst(s.species)
+      if not sp then
+        ok = false
+        break
+      end
+      slots[#slots + 1] = { level = s.level, species = sp }
+    end
+    if ok and #slots > 0 then
+      out.rematches[id] = slots
+    else
+      counts.trainers = counts.trainers + 1
+    end
+  end
+
   return out, counts
 end
 
@@ -223,6 +243,23 @@ applyTables = function(mod, data)
   -- so every battle that references an index still maps to the right team)
   for id, entry in pairs(resolved.trainers) do
     mod.content.trainers:patch(id, entry)
+  end
+
+  -- rematches: append the hack's rematch team to the class's parties and
+  -- mark its index, so a trainer-rematch mod can pick the team.  Only
+  -- classes this mod already rebalances are touched; the rematch team
+  -- never takes index 1 of a class it does not own.
+  for id, team in pairs(resolved.rematches) do
+    local entry = resolved.trainers[id]
+    if not entry then
+      mod.log:warn("rematch team for %s skipped (class not rebalanced by this mod)", id)
+    else
+      local parties = entry.parties
+      local patch = { parties = {}, rematchIndex = #parties + 1 }
+      for i = 1, #parties do patch.parties[i] = parties[i] end
+      patch.parties[#patch.parties + 1] = team
+      mod.content.trainers:patch(id, patch)
+    end
   end
 
   if counts.moves > 0 then

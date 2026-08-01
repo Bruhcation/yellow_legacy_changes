@@ -139,6 +139,10 @@ moved from vanilla.
 - Trade evolutions become level evolutions, like the hack: Kadabra at 42,
   Machoke at 38, Graveler at 38, Haunter at 42.  Poliwhirl also evolves
   into Poliwrath at 18 instead of 25.
+- The hack's rematch teams (gym leaders, Elite Four and Champion, levels
+  64-77) ship as extra party indexes marked `rematchIndex`.  Pair this mod
+  with a trainer-rematch mod that reads the marker (e.g. Trainer Rematch
+  0.2.0+) to fight them; without one, the teams stay dormant in the data.
 - PSYWAVE keeps its vanilla damage formula; only its accuracy is changed.
 - Stat patches are partial: a stat the document does not change is
   untouched.

@@ -57,6 +57,7 @@ for _, id in ipairs({
   "MACHOKE", "GOLEM", "MAGNETON", "DODRIO", "SANDSLASH", "CLOYSTER",
   "FLAREON", "MACHAMP", "PIDGEOT", "VAPOREON",
   "GRAVELER", "HAUNTER", "GENGAR", "POLIWHIRL", "POLIWRATH",
+  "SEADRA", "GOLDUCK", "LAPRAS", "BLASTOISE",
 }) do
   seedSpecies(id)
 end
@@ -290,6 +291,28 @@ T.eq(trainers:get("OPP_MISTY").parties[1][3].species, "STARMIE",
 T.eq(trainers:get("OPP_MISTY").parties[1][3].level, 21, "ace level 21")
 T.eq(trainers:get("OPP_MISTY").baseMoney, 40, "unpatched baseMoney preserved")
 
+-- ---------- rematch teams (the hack's "; Rematch" rows) ----------
+
+local misty = trainers:get("OPP_MISTY")
+T.eq(misty.rematchIndex, 2, "MISTY marks its rematch team at index 2")
+T.eq(#misty.parties, 2, "MISTY keeps the vanilla team and gains the rematch")
+local rm = misty.parties[2]
+T.eq(#rm, 6, "the rematch team is a full six")
+T.eq(rm[1].level, 64, "the rematch leads at 64")
+T.eq(rm[1].species, "SEADRA", "SEADRA leads the rematch team")
+T.eq(rm[6].level, 65, "the anchor sits at 65")
+T.eq(rm[6].species, "STARMIE", "STARMIE anchors the rematch team")
+
+local rival3 = trainers:get("OPP_RIVAL3")
+T.eq(rival3.rematchIndex, 4, "RIVAL3's rematch team sits after its three teams")
+T.eq(#rival3.parties, 4, "RIVAL3 gains a fourth team")
+T.eq(rival3.parties[4][1].level, 77, "the champion rematch leads at 77")
+T.eq(rival3.parties[4][1].species, "ALAKAZAM", "the champion rematch opens with ALAKAZAM")
+T.eq(rival3.parties[4][6].level, 77, "the champion rematch closes at 77")
+
+local other = trainers:get("OPP_YOUNGSTER")
+T.eq(other and other.rematchIndex, nil, "classes without a rematch team carry no marker")
+
 T.eq(trainers:get("OPP_LT_SURGE").parties[1][1].species, "RAICHU",
   "Lt. Surge: RAICHU 29")
 T.eq(trainers:get("OPP_LT_SURGE").parties[1][1].level, 29, "Lt. Surge level")
@@ -304,7 +327,8 @@ T.eq(trainers:get("OPP_SABRINA").parties[1][1].species, "ABRA",
 T.eq(#trainers:get("OPP_GIOVANNI").parties, 3, "Giovanni keeps three fights")
 T.eq(trainers:get("OPP_GIOVANNI").parties[3][1].level, 53,
   "Viridian Giovanni: DUGTRIO 53 (was 50)")
-T.eq(#trainers:get("OPP_RIVAL3").parties, 3, "champion rival keeps three teams")
+T.eq(#trainers:get("OPP_RIVAL3").parties, 4,
+  "champion rival keeps three teams plus the rematch team")
 T.eq(trainers:get("OPP_RIVAL3").parties[1][1].species, "ALAKAZAM",
   "champion rival leads ALAKAZAM 63")
 T.eq(trainers:get("OPP_LANCE").parties[1][1].species, "DRAGONITE",

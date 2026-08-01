@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.6.0] - 2026-08-01
+
+### Added
+
+- The hack's rematch teams (`data/trainers/parties.asm` "; Rematch" rows)
+  for the seven gym leaders, the Elite Four and the Champion, appended to
+  each class's parties with a `rematchIndex` marker.  A trainer-rematch
+  mod (Trainer Rematch 0.2.0+) reads the marker and uses the team when it
+  triggers a rematch; without one, nothing changes.
+
 ## [1.5.0] - 2026-08-01
 
 ### Added
