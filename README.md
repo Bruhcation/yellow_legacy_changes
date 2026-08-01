@@ -10,7 +10,7 @@ Twineedle 40x2...).
 Tables show the **new values**; `(+X)` / `(-X)` marks how much the value
 moved from vanilla.
 
-## Move changes (pages 11-14)
+## Move changes
 
 | Move | Power | Acc | PP | Change |
 |---|---|---|---|---|
@@ -88,7 +88,7 @@ moved from vanilla.
 | Smog | 40 | 80% (+10) | 20 | Accuracy buff |
 | Slam | 80 | 100% (+25) | 20 | Now **Dragon** type, 10% flinch |
 
-## Stat changes (pages 15-19)
+## Stat changes
 
 | Pokémon | HP | Atk | Def | SPC | Spd |
 |---|---|---|---|---|---|
