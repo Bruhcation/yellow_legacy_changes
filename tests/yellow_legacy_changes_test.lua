@@ -22,6 +22,12 @@ Data.pokemon.PIKACHU = {
   catchRate = 190, baseExp = 82, growthRate = "MEDIUM_FAST",
   level1Moves = {}, tmhm = {}, learnset = {}, evolutions = {},
 }
+Data.pokemon.FIXMON_LEGACY = {
+  id = "FIXMON_LEGACY", name = "FIXMON LEGACY", index = 99, dex = 99,
+  baseStats = { hp = 40, attack = 50, defense = 40, speed = 45, special = 45 },
+  catchRate = 190, baseExp = 64, growthRate = "MEDIUM_SLOW",
+  level1Moves = {}, tmhm = {}, learnset = {}, evolutions = {},
+}
 
 local run = T.sdk.loadMod("mods/yellow_legacy_changes", { data = Data })
 T.eq(#run.errors, 0, "loads clean (" .. tostring(run.errors[1]) .. ")")
@@ -277,6 +283,58 @@ local clean = { name = "TEST", mon = { hp = 100, stats = { hp = 100 } } }
 local cleanOpp = { mon = { hp = 50, stats = { hp = 200 } } }
 Status.residual(clean, cleanOpp, {})
 T.eq(clean.mon.hp, 100, "an unseeded mon takes no residual")
+
+-- ---------- learnset / tmhm / encounter resolution ----------
+
+local resolveTables = run.loader.exports.yellow_legacy_changes.resolveTables
+T.check(type(resolveTables) == "function", "resolveTables is published")
+
+local mini = {
+  learnsets = {
+    ["Fixmon Legacy"] = {
+      { 1, "Fix Tackle" }, { 7, "Fix Ember" }, { 12, "Fix Cut" },
+    },
+    ["No Such Mon"] = { { 1, "Fix Tackle" } },
+  },
+  tmhm = {
+    ["Fixmon Legacy"] = { "Fix Cut", "Fix Ember" },
+  },
+  encounters = {
+    FIX_ROUTE = {
+      grass = { { 3, "Fixmon B" }, { 4, "Fixmon C" }, { 5, "Fixmon A" } },
+      water = { { 10, "Fixmon B" } },
+      rods = { OLD_ROD = { { 5, "Fixmon B" } } },
+    },
+    NO_SUCH_MAP = { grass = { { 2, "Fixmon A" } } },
+  },
+}
+
+local resolved, counts = resolveTables(run.loader.content, mini)
+T.eq(resolved.learnsets["FIXMON_LEGACY"].learnset[1].move, "FIX_TACKLE",
+  "learnset level-1 move id resolves")
+T.eq(resolved.learnsets["FIXMON_LEGACY"].learnset[2].move, "FIX_EMBERISH",
+  "display names resolve to ids")
+T.eq(resolved.learnsets["FIXMON_LEGACY"].learnset[2].level, 7, "level")
+T.eq(resolved.learnsets["FIXMON_LEGACY"].learnset[3].move, "FIX_CUT",
+  "machine moves resolve in learnsets")
+T.eq(#resolved.learnsets["FIXMON_LEGACY"].level1, 1, "level-1 entries listed")
+T.eq(resolved.learnsets["FIXMON_LEGACY"].level1[1], "FIX_TACKLE",
+  "level-1 move id")
+T.check(resolved.learnsets["NO_SUCH_MON"] == nil,
+  "an unknown species resolves to nothing")
+T.eq(#resolved.tmhm["FIXMON_LEGACY"], 2, "tmhm ids resolved in order")
+T.eq(resolved.tmhm["FIXMON_LEGACY"][1], "FIX_CUT", "tmhm first entry")
+T.eq(#resolved.encounters["FIX_ROUTE"].grass, 3, "grass slots resolved")
+T.eq(resolved.encounters["FIX_ROUTE"].grass[1].species, "FIXMON_B",
+  "grass species id")
+T.eq(#resolved.encounters["FIX_ROUTE"].water, 1, "surf slots resolved")
+T.eq(resolved.rods.OLD_ROD["FIX_ROUTE"][1].species, "FIXMON_B",
+  "rod pool resolves species")
+T.eq(resolved.rods.OLD_ROD["FIX_ROUTE"][1].level, 5, "rod pool level")
+T.check(resolved.encounters["NO_SUCH_MAP"] == nil,
+  "an unknown map resolves to nothing")
+T.eq(counts.species, 1, "one unknown species counted")
+T.eq(counts.maps, 1, "one unknown map counted")
 
 run.release()
 T.finish("yellow_legacy_changes")

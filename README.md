@@ -120,6 +120,18 @@ moved from vanilla.
 | Eevee | 70 (+15) | 65 (+10) | 65 (+10) | 70 (+5) | 55 |
 | Porygon | 75 (+10) | 70 (+10) | 70 | 95 (+20) | 40 |
 
+## Learnset, TM/HM and encounter changes (Data.xlsx)
+
+- **Learnsets:** all 151 species get the workbook's level-up move lists
+  (sheet 1); level-1 entries become the starting moves.
+- **TM/HM:** 146 species get the workbook's machine compatibility lists
+  (sheet 2), in TM01..HM05 order.
+- **Encounters:** 57 maps get the workbook's grass, surf and rod slot
+  tables (sheet 3). Encounter rates stay vanilla; fishing uses per-map
+  pools for the Old, Good and Super Rods.
+- Species and move names are resolved against your imported data at load,
+  so the workbook's display names always map to the right ids.
+
 ## Notes
 
 - Learnset/availability changes are not included — the document's pages

@@ -8,6 +8,183 @@
 --     of the Gen 1 bug (faithful ruleset) or the engine's 4x (modern).
 --   * LEECH SEED drains a flat 1/8 of max HP per turn, without the Gen 1
 --     toxic-counter glitch.
+--
+-- Learnset, TM/HM and encounter changes ship in learnsets.lua (generated
+-- from 'Yellow Legacy Data.xlsx'): species and move display names are
+-- resolved against the player's imported data at load, so the file works
+-- on any build without shipping a name table.
+local applyTables, resolveTables -- forward: applyLegacyTables reads the file then applies
+local function applyLegacyTables(mod)
+  local source = mod:read("learnsets.lua")
+  if not source then
+    mod.log:error("learnsets.lua missing from %s -- reinstall the mod", mod.path)
+    return
+  end
+  local chunk, compileErr = load(source, "@" .. mod.path .. "/learnsets.lua")
+  if not chunk then
+    mod.log:error("learnsets.lua did not compile: %s", tostring(compileErr))
+    return
+  end
+  local ok, data = pcall(chunk)
+  if not ok then
+    mod.log:error("learnsets.lua failed to load: %s", tostring(data))
+    return
+  end
+  applyTables(mod, data)
+end
+
+-- Pure resolution of one tables struct (the shape learnsets.lua returns)
+-- against a content facade: display names -> ids.  Reads only (get/each),
+-- so headless tests can drive it after the loader freezes registries.
+-- Returns the resolved struct plus unknown-name counts.
+resolveTables = function(content, data)
+  local function norm(s) return (s:gsub("[^%w]", ""):upper()) end
+
+  local moveId, speciesId = {}, {}
+  for id, rec in content.moves:each() do
+    if rec and rec.name then moveId[norm(rec.name)] = id end
+  end
+  for id, rec in content.pokemon:each() do
+    if rec and rec.name then speciesId[norm(rec.name)] = id end
+  end
+
+  local counts = { moves = 0, species = 0, maps = 0 }
+  local function moveByName(name)
+    local id = moveId[norm(name)]
+    if not id then counts.moves = counts.moves + 1 end
+    return id
+  end
+  local function speciesByName(name)
+    local id = speciesId[norm(name)]
+    if not id then counts.species = counts.species + 1 end
+    return id
+  end
+
+  local out = { learnsets = {}, tmhm = {}, encounters = {}, rods = {} }
+
+  for name, entries in pairs(data.learnsets or {}) do
+    local id = speciesByName(name)
+    if id then
+      local learnset, level1 = {}, {}
+      for _, e in ipairs(entries) do
+        local mid = moveByName(e[2])
+        if mid then
+          learnset[#learnset + 1] = { level = e[1], move = mid }
+          if e[1] == 1 then level1[#level1 + 1] = mid end
+        end
+      end
+      out.learnsets[id] = { learnset = learnset, level1 = level1 }
+    end
+  end
+
+  for name, moves in pairs(data.tmhm or {}) do
+    local id = speciesByName(name)
+    if id then
+      local list = {}
+      for _, m in ipairs(moves) do
+        local mid = moveByName(m)
+        if mid then list[#list + 1] = mid end
+      end
+      out.tmhm[id] = list
+    end
+  end
+
+  for mid, enc in pairs(data.encounters or {}) do
+    local entry = {}
+    if enc.grass and #enc.grass > 0 then
+      local slots = {}
+      for _, s in ipairs(enc.grass) do
+        local sp = speciesByName(s[2])
+        if sp then slots[#slots + 1] = { level = s[1], species = sp } end
+      end
+      if #slots > 0 then entry.grass = slots end
+    end
+    if enc.water and #enc.water > 0 then
+      local slots = {}
+      for _, s in ipairs(enc.water) do
+        local sp = speciesByName(s[2])
+        if sp then slots[#slots + 1] = { level = s[1], species = sp } end
+      end
+      if #slots > 0 then entry.water = slots end
+    end
+    for rod, slots in pairs(enc.rods or {}) do
+      local list = {}
+      for _, s in ipairs(slots) do
+        local sp = speciesByName(s[2])
+        if sp then list[#list + 1] = { species = sp, level = s[1] } end
+      end
+      if #list > 0 then
+        out.rods[rod] = out.rods[rod] or {}
+        out.rods[rod][mid] = list
+      end
+    end
+    if next(entry) then
+      if content.encounters:get(mid) then
+        out.encounters[mid] = entry
+      else
+        counts.maps = counts.maps + 1
+      end
+    end
+  end
+
+  return out, counts
+end
+
+-- Pure application of one tables struct (the shape learnsets.lua returns),
+-- so headless tests can drive the resolver + patch mechanics with fixture
+-- names.  Species and move names are display names resolved against the
+-- merged view; unknown names are counted and skipped.
+applyTables = function(mod, data)
+  local resolved, counts = resolveTables(mod.content, data)
+  if resolved == nil then return end
+
+  -- learnsets: replace wholesale (level 1 entries also seed level1Moves)
+  for id, entry in pairs(resolved.learnsets) do
+    local patch = { learnset = entry.learnset }
+    if #entry.level1 > 0 then patch.level1Moves = entry.level1 end
+    mod.content.pokemon:patch(id, patch)
+  end
+
+  -- tmhm: the workbook's per-species machine lists, in TM/HM order
+  for id, list in pairs(resolved.tmhm) do
+    mod.content.pokemon:patch(id, { tmhm = list })
+  end
+
+  -- encounters: grass + surf slot tables; rates stay vanilla
+  for mid, entry in pairs(resolved.encounters) do
+    local patch = {}
+    if entry.grass then patch.grass = { slots = entry.grass } end
+    if entry.water then patch.water = { slots = entry.water } end
+    mod.content.encounters:patch(mid, patch)
+  end
+
+  -- fishing: per-map rod pools behind the three rod keys
+  local poolKeys = { OLD_ROD = "legacyOldRod", GOOD_ROD = "legacyGoodRod",
+                     SUPER_ROD = "legacySuperRod" }
+  local fishing, pools = {}, {}
+  for rod, perMap in pairs(resolved.rods) do
+    if next(perMap) then
+      fishing[rod] = { perMap = poolKeys[rod] }
+      pools[poolKeys[rod]] = perMap
+    end
+  end
+  if next(fishing) then
+    mod.content.field:override("fishing", fishing)
+    for key, perMap in pairs(pools) do
+      mod.content.field:patch(key, perMap)
+    end
+  end
+
+  if counts.moves > 0 then
+    mod.log:warn("%d unknown move names skipped", counts.moves)
+  end
+  if counts.species > 0 then
+    mod.log:warn("%d unknown species names skipped", counts.species)
+  end
+  if counts.maps > 0 then
+    mod.log:warn("%d unknown maps skipped", counts.maps)
+  end
+end
 return function(mod)
   local MOVES = {
     -- Normal / general
@@ -138,6 +315,8 @@ return function(mod)
     mod.content.pokemon:patch(id, patch)
   end
 
+  applyLegacyTables(mod)
+
   mod.events:on("game.ready", function()
     local Stats = require("src.pokemon.Stats")
     local Damage = require("src.battle.Damage")
@@ -195,4 +374,6 @@ return function(mod)
       return msgs
     end
   end)
+
+  mod.exports = { applyTables = applyTables, resolveTables = resolveTables }
 end

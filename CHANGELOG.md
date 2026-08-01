@@ -8,3 +8,17 @@
   rebalanced (power/accuracy/pp), 5 type changes, 11 effect changes,
   FOCUS ENERGY functional at 2x crit, LEECH SEED flat 1/8 drain.
 - Stat changes from pages 15-19: 27 species base stats rebalanced.
+
+## [1.1.0] - 2026-08-01
+
+### Added
+
+- Learnsets for all 151 species from 'Yellow Legacy Data.xlsx' (sheet 1),
+  replacing each species' level-up move list; level-1 entries seed the
+  starting moves.
+- TM/HM compatibility lists for 146 species (sheet 2), in TM01..HM05 order.
+- Encounter changes for 57 maps (sheet 3): grass, surf and rod slot tables;
+  encounter rates stay vanilla. Rod pools live behind per-map fishing
+  groups for the Old, Good and Super Rods.
+- Name resolution: species and move display names are resolved against the
+  player's imported data at load, so the workbook's names never go stale.

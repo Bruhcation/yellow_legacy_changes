@@ -11,10 +11,11 @@ return {
       "effect changes: DIZZY_PUNCH 10% confuse, TRI_ATTACK/FIRE_PUNCH 30% burn, ROCK_SLIDE/WATERFALL/SLAM 10% flinch, RAZOR_WIND/SKULL_BASH recharge like Hyper Beam, SKY_ATTACK/NIGHT_SHADE no longer special, TRANSFORM +1 priority",
       "FOCUS ENERGY functional at exactly 2x crit rate; LEECH SEED drains a flat 1/8",
       "27 species base stats rebalanced per pages 15-19",
+      "learnsets for all 151 species, TM/HM lists for 146, encounter tables for 57 maps (Data.xlsx)",
     },
     added = {},
     known = {
-      "learnset/availability changes from the document are not included (not part of these pages)",
+      "encounter rates stay vanilla; only slot tables change",
       "PSYWAVE keeps its vanilla damage formula (the document only specifies its accuracy)",
       "stat patches write the new values; unpatched stats are untouched",
     },
