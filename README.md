@@ -1,7 +1,7 @@
 # Yellow Legacy Changes
 
-Applies the **move changes** (PDF pages 11-14) and **stat changes**
-(pages 15-19) from *Yellow Legacy by TSP* to the Gen 1 recompilation.
+Applies the **move changes** and **stat changes**
+ from *Yellow Legacy* to the Gen 1 recompilation.
 
 Try it: enable the mod, then check a rebalanced mon's stats in the
 Pokédex, or fight with a buffed move (Solar Beam 180, Explosion 250,
