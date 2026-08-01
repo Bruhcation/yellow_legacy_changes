@@ -1,6 +1,7 @@
--- Yellow Legacy by TSP -- move changes (pages 11-14) and stat changes
--- (pages 15-19) from the design PDF.  Values are the NEW numbers; the
--- patches touch only the fields the document changes.
+-- Yellow Legacy by TSP -- move changes (pages 11-14), stat changes
+-- (pages 15-19), and trainer / gym-leader team updates from the design
+-- PDF and the cRz-Shadows/Pokemon_Yellow_Legacy disassembly.  Values are
+-- the NEW numbers; the patches touch only the fields the document changes.
 --
 -- Engine behavior changes that the data cannot express ride on wrapped
 -- seams (installed on game.ready, the nuzlocke pattern):
@@ -9,28 +10,33 @@
 --   * LEECH SEED drains a flat 1/8 of max HP per turn, without the Gen 1
 --     toxic-counter glitch.
 --
--- Learnset, TM/HM and encounter changes ship in learnsets.lua (generated
--- from 'Yellow Legacy Data.xlsx'): species and move display names are
--- resolved against the player's imported data at load, so the file works
--- on any build without shipping a name table.
-local applyTables, resolveTables -- forward: applyLegacyTables reads the file then applies
+-- Learnset, TM/HM, encounter and trainer-party changes ship in
+-- learnsets.lua and trainers.lua (generated from 'Yellow Legacy Data.xlsx'
+-- and the disassembly's data/trainers/parties.asm): species and move
+-- display names are resolved against the player's imported data at load,
+-- so the files work on any build without shipping a name table.
+local applyTables, resolveTables -- forward: applyLegacyTables reads the files then applies
 local function applyLegacyTables(mod)
-  local source = mod:read("learnsets.lua")
-  if not source then
-    mod.log:error("learnsets.lua missing from %s -- reinstall the mod", mod.path)
-    return
+  local merged = {}
+  for _, name in ipairs({ "learnsets.lua", "trainers.lua" }) do
+    local source = mod:read(name)
+    if not source then
+      mod.log:error("%s missing from %s -- reinstall the mod", name, mod.path)
+      return
+    end
+    local chunk, compileErr = load(source, "@" .. mod.path .. "/" .. name)
+    if not chunk then
+      mod.log:error("%s did not compile: %s", name, tostring(compileErr))
+      return
+    end
+    local ok, data = pcall(chunk)
+    if not ok then
+      mod.log:error("%s failed to load: %s", name, tostring(data))
+      return
+    end
+    for k, v in pairs(data) do merged[k] = v end
   end
-  local chunk, compileErr = load(source, "@" .. mod.path .. "/learnsets.lua")
-  if not chunk then
-    mod.log:error("learnsets.lua did not compile: %s", tostring(compileErr))
-    return
-  end
-  local ok, data = pcall(chunk)
-  if not ok then
-    mod.log:error("learnsets.lua failed to load: %s", tostring(data))
-    return
-  end
-  applyTables(mod, data)
+  applyTables(mod, merged)
 end
 
 -- Pure resolution of one tables struct (the shape learnsets.lua returns)
@@ -47,8 +53,15 @@ resolveTables = function(content, data)
   for id, rec in content.pokemon:each() do
     if rec and rec.name then speciesId[norm(rec.name)] = id end
   end
+  -- trainer parties name species by ROM constant ("NIDORAN_M"), which
+  -- matches the registry's ids, not the display names -- resolve against
+  -- the ids themselves
+  local constId = {}
+  for id, rec in content.pokemon:each() do
+    if rec then constId[norm(id)] = id end
+  end
 
-  local counts = { moves = 0, species = 0, maps = 0 }
+  local counts = { moves = 0, species = 0, maps = 0, trainers = 0 }
   local function moveByName(name)
     local id = moveId[norm(name)]
     if not id then counts.moves = counts.moves + 1 end
@@ -59,8 +72,14 @@ resolveTables = function(content, data)
     if not id then counts.species = counts.species + 1 end
     return id
   end
+  local function speciesByConst(name)
+    local id = constId[norm(name)]
+    if not id then counts.species = counts.species + 1 end
+    return id
+  end
 
-  local out = { learnsets = {}, tmhm = {}, encounters = {}, rods = {} }
+  local out = { learnsets = {}, tmhm = {}, encounters = {}, rods = {},
+                trainers = {} }
 
   for name, entries in pairs(data.learnsets or {}) do
     local id = speciesByName(name)
@@ -127,6 +146,30 @@ resolveTables = function(content, data)
     end
   end
 
+  -- trainers: whole-party replacement per class, party indexes preserved.
+  -- A class with any unknown species is dropped whole (never partial).
+  for id, entry in pairs(data.trainers or {}) do
+    local ok, parties = true, {}
+    for _, party in ipairs(entry.parties or {}) do
+      local slots = {}
+      for _, s in ipairs(party) do
+        local sp = speciesByConst(s.species)
+        if not sp then
+          ok = false
+          break
+        end
+        slots[#slots + 1] = { level = s.level, species = sp }
+      end
+      if not ok then break end
+      parties[#parties + 1] = slots
+    end
+    if ok and #parties > 0 then
+      out.trainers[id] = { parties = parties }
+    else
+      counts.trainers = counts.trainers + 1
+    end
+  end
+
   return out, counts
 end
 
@@ -175,6 +218,12 @@ applyTables = function(mod, data)
     end
   end
 
+  -- trainers: whole-party replacement per class (party indexes preserved,
+  -- so every battle that references an index still maps to the right team)
+  for id, entry in pairs(resolved.trainers) do
+    mod.content.trainers:patch(id, entry)
+  end
+
   if counts.moves > 0 then
     mod.log:warn("%d unknown move names skipped", counts.moves)
   end
@@ -183,6 +232,9 @@ applyTables = function(mod, data)
   end
   if counts.maps > 0 then
     mod.log:warn("%d unknown maps skipped", counts.maps)
+  end
+  if counts.trainers > 0 then
+    mod.log:warn("%d trainer classes skipped", counts.trainers)
   end
 end
 return function(mod)

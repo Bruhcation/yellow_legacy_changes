@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0] - 2026-08-01
+
+### Added
+
+- Trainer and gym-leader team updates from the Yellow Legacy disassembly
+  (cRz-Shadows/Pokemon_Yellow_Legacy, data/trainers/parties.asm): 44
+  classes rebalanced -- route trainers, Rocket grunts, the Rival, Gym
+  Leaders, Elite Four and Champion. Levels and species follow the hack's
+  teams exactly; party indexes are preserved so every battle maps to the
+  same team as before.
+- Only existing trainer classes are touched (no new trainers); appended
+  rematch / Victory-Road battles from the hack are not ported.
+
 ## [1.0.0] - 2026-08-01
 
 ### Added

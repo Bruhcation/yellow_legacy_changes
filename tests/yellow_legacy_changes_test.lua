@@ -29,6 +29,36 @@ Data.pokemon.FIXMON_LEGACY = {
   catchRate = 190, baseExp = 64, growthRate = "MEDIUM_SLOW",
   level1Moves = {}, tmhm = {}, learnset = {}, evolutions = {},
 }
+-- seed a vanilla trainer base (Yellow: STARYU 18 / STARMIE 21) so the
+-- deep merge's preservation of unpatched leaves is observable
+Data.trainers.OPP_MISTY = {
+  id = "OPP_MISTY", name = "MISTY", index = 35, baseMoney = 40,
+  parties = {
+    { { level = 18, species = "STARYU" }, { level = 21, species = "STARMIE" } },
+  },
+}
+-- minimal species records for the trainer-team species the merged-view
+-- assertions touch (the fixture itself only carries FIX_* species)
+local function seedSpecies(id)
+  Data.pokemon[id] = {
+    id = id, name = id, index = 1, dex = 1,
+    baseStats = { hp = 50, attack = 50, defense = 50, speed = 50, special = 50 },
+    catchRate = 100, baseExp = 100, growthRate = "MEDIUM_FAST",
+    level1Moves = {}, tmhm = {}, learnset = {}, evolutions = {},
+  }
+end
+for _, id in ipairs({
+  "PSYDUCK", "GOLDEEN", "STARMIE", "RAICHU", "TANGELA", "VICTREEBEL",
+  "IVYSAUR", "VILEPLUME", "GOLBAT", "MUK", "TENTACRUEL", "VENOMOTH",
+  "RAPIDASH", "CHARIZARD", "NINETALES", "ARCANINE", "MAGMAR", "ABRA",
+  "HYPNO", "MR_MIME", "KADABRA", "ALAKAZAM", "DUGTRIO", "NIDOQUEEN",
+  "PERSIAN", "NIDOKING", "RHYDON", "GYARADOS", "EXEGGUTOR", "JOLTEON",
+  "DRAGONITE", "AERODACTYL", "ONIX", "KANGASKHAN", "MAROWAK", "KINGLER",
+  "MACHOKE", "GOLEM", "MAGNETON", "DODRIO", "SANDSLASH", "CLOYSTER",
+  "FLAREON", "MACHAMP", "PIDGEOT", "VAPOREON",
+}) do
+  seedSpecies(id)
+end
 
 local run = T.sdk.loadMod("mods/yellow_legacy_changes", { data = Data })
 T.eq(#run.errors, 0, "loads clean (" .. tostring(run.errors[1]) .. ")")
@@ -233,6 +263,49 @@ T.eq(pika.baseStats.special, 70, "seeded base: PIKACHU special patched")
 T.eq(pika.baseStats.attack, 55, "seeded base: PIKACHU attack preserved")
 T.eq(pika.baseStats.speed, 90, "seeded base: PIKACHU speed preserved")
 
+-- ---------- trainer team patches ----------
+
+local trainers = run.loader.content.trainers
+T.check(trainers ~= nil, "trainers registry present")
+
+-- headline teams land in the merged view
+T.eq(trainers:get("OPP_MISTY").parties[1][1].level, 19,
+  "Misty leads PSYDUCK 19 (was STARYU 18)")
+T.eq(trainers:get("OPP_MISTY").parties[1][1].species, "PSYDUCK",
+  "Misty leads PSYDUCK (was STARYU)")
+T.eq(trainers:get("OPP_MISTY").parties[1][3].species, "STARMIE",
+  "STARMIE stays Misty's ace")
+T.eq(trainers:get("OPP_MISTY").parties[1][3].level, 21, "ace level 21")
+T.eq(trainers:get("OPP_MISTY").baseMoney, 40, "unpatched baseMoney preserved")
+
+T.eq(trainers:get("OPP_LT_SURGE").parties[1][1].species, "RAICHU",
+  "Lt. Surge: RAICHU 29")
+T.eq(trainers:get("OPP_LT_SURGE").parties[1][1].level, 29, "Lt. Surge level")
+T.eq(trainers:get("OPP_ERIKA").parties[1][1].species, "TANGELA",
+  "Erika leads TANGELA 33 (was TANGELA 30)")
+T.eq(trainers:get("OPP_KOGA").parties[1][1].species, "GOLBAT",
+  "Koga leads GOLBAT 42")
+T.eq(trainers:get("OPP_BLAINE").parties[1][5].species, "MAGMAR",
+  "Blaine closes with MAGMAR 53 (was RAPIDASH solo)")
+T.eq(trainers:get("OPP_SABRINA").parties[1][1].species, "ABRA",
+  "Sabrina leads ABRA 50")
+T.eq(#trainers:get("OPP_GIOVANNI").parties, 3, "Giovanni keeps three fights")
+T.eq(trainers:get("OPP_GIOVANNI").parties[3][1].level, 53,
+  "Viridian Giovanni: DUGTRIO 53 (was 50)")
+T.eq(#trainers:get("OPP_RIVAL3").parties, 3, "champion rival keeps three teams")
+T.eq(trainers:get("OPP_RIVAL3").parties[1][1].species, "ALAKAZAM",
+  "champion rival leads ALAKAZAM 63")
+T.eq(trainers:get("OPP_LANCE").parties[1][1].species, "DRAGONITE",
+  "Lance leads DRAGONITE 61 (was GYARADOS 58)")
+T.eq(trainers:get("OPP_LANCE").parties[1][3].species, "CHARIZARD",
+  "Lance fields CHARIZARD 60 (was DRAGONAIR)")
+
+-- the mod never registers new classes (no Smith/Craig/Janine/Joy/Jenny)
+for _, id in ipairs({ "OPP_SMITH", "OPP_CRAIG", "OPP_JANINE",
+                      "OPP_JOY", "OPP_JENNY", "OPP_WEEBRA" }) do
+  T.check(trainers:get(id) == nil, id .. " is not registered")
+end
+
 -- ---------- engine wraps ----------
 
 local Runtime = require("src.mods.Runtime")
@@ -336,6 +409,31 @@ T.check(resolved.encounters["NO_SUCH_MAP"] == nil,
   "an unknown map resolves to nothing")
 T.eq(counts.species, 1, "one unknown species counted")
 T.eq(counts.maps, 1, "one unknown map counted")
+
+-- trainer parties resolve ROM constants against registry ids
+local mini2 = {
+  trainers = {
+    ["OPP_FIX_TRAINER"] = {
+      parties = {
+        { { level = 5, species = "Fixmon B" }, { level = 7, species = "Fixmon A" } },
+      },
+    },
+    ["OPP_FIX_GHOST"] = {
+      parties = { { { level = 9, species = "No Such Mon" } } },
+    },
+  },
+}
+local resolved2, counts2 = resolveTables(run.loader.content, mini2)
+T.eq(resolved2.trainers["OPP_FIX_TRAINER"].parties[1][1].species, "FIXMON_B",
+  "trainer species constant resolves to the registry id")
+T.eq(resolved2.trainers["OPP_FIX_TRAINER"].parties[1][1].level, 5,
+  "trainer party level")
+T.eq(#resolved2.trainers["OPP_FIX_TRAINER"].parties[1], 2,
+  "trainer party keeps both slots")
+T.check(resolved2.trainers["OPP_FIX_GHOST"] == nil,
+  "a class with an unknown species is dropped whole")
+T.eq(counts2.species, 1, "one unknown trainer species counted")
+T.eq(counts2.trainers, 1, "one trainer class skipped")
 
 -- ---------- type chart changes ----------
 
