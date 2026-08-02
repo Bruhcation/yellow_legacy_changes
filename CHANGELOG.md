@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.8.0] - 2026-08-02
+
+### Changed
+
+- The Rival's Eevee / Eeveelution is replaced with the starter line that
+  matches his route, so the Rival carries a full starter the whole game:
+  Bulbasaur line for the Jolteon route, Charmander line for the Flareon
+  route, and Squirtle line for the Vaporeon route (Oak's Lab through
+  Champion, including the champion rematch being untouched).
+- Early rival battles (Oak's Lab, Route 22, Cerulean, S.S. Anne) use
+  fixed party indexes in the engine's Yellow scripts, so a
+  `trainer.party` hook now swaps in the route's starter line there based
+  on the player's `save.rivalStarter`; the Oak's Lab fight uses the
+  Jolteon-route starter (Bulbasaur) since the route is decided by its
+  result.
+- The Jolteon route no longer doubles up on Grass types: Exeggutor is
+  replaced by Magneton on the Route 22 rematch and Champion teams (same
+  levels and the Flareon team's Magneton movesets).
+
 ## [1.7.0] - 2026-08-01
 
 ### Changed

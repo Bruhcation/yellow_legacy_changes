@@ -328,26 +328,26 @@ return {
       { {level = 45, species = "STARMIE"} },
     } },
     ["OPP_RIVAL1"] = { parties = {
-      { {level = 5, species = "EEVEE"} },
-      { {level = 9, species = "SPEAROW"}, {level = 8, species = "EEVEE"} },
-      { {level = 18, species = "SPEAROW"}, {level = 15, species = "RATTATA"}, {level = 15, species = "BELLSPROUT"}, {level = 19, species = "EEVEE"} },
+      { {level = 5, species = "BULBASAUR"} },
+      { {level = 9, species = "SPEAROW"}, {level = 8, species = "BULBASAUR"} },
+      { {level = 18, species = "SPEAROW"}, {level = 15, species = "RATTATA"}, {level = 15, species = "BELLSPROUT"}, {level = 19, species = "BULBASAUR"} },
     } },
     ["OPP_RIVAL2"] = { parties = {
-      { {level = 20, species = "RATICATE"}, {level = 22, species = "WEEPINBELL"}, {level = 21, species = "SANDSHREW"}, {level = 24, species = "EEVEE"} },
-      { {level = 34, species = "FEAROW"}, {level = 32, species = "SHELLDER"}, {level = 32, species = "GROWLITHE"}, {level = 33, species = "KADABRA"}, {level = 35, species = "JOLTEON"} },
-      { {level = 34, species = "FEAROW"}, {level = 32, species = "MAGNEMITE"}, {level = 33, species = "KADABRA"}, {level = 32, species = "SHELLDER"}, {level = 35, species = "FLAREON"} },
-      { {level = 34, species = "FEAROW"}, {level = 32, species = "VULPIX"}, {level = 33, species = "KADABRA"}, {level = 32, species = "SCYTHER"}, {level = 35, species = "VAPOREON"} },
-      { {level = 43, species = "PARASECT"}, {level = 44, species = "GYARADOS"}, {level = 43, species = "RHYDON"}, {level = 44, species = "ALAKAZAM"}, {level = 46, species = "JOLTEON"} },
-      { {level = 43, species = "ELECTABUZZ"}, {level = 44, species = "CLOYSTER"}, {level = 43, species = "DODRIO"}, {level = 44, species = "ALAKAZAM"}, {level = 46, species = "FLAREON"} },
-      { {level = 43, species = "VICTREEBEL"}, {level = 44, species = "PORYGON"}, {level = 43, species = "PRIMEAPE"}, {level = 44, species = "ALAKAZAM"}, {level = 46, species = "VAPOREON"} },
-      { {level = 55, species = "JOLTEON"}, {level = 53, species = "PIDGEOT"}, {level = 52, species = "EXEGGUTOR"}, {level = 52, species = "MAROWAK"}, {level = 54, species = "ARCANINE"}, {level = 54, species = "ALAKAZAM"} },
-      { {level = 54, species = "FEAROW"}, {level = 52, species = "MAGNETON"}, {level = 53, species = "GOLDUCK"}, {level = 54, species = "ALAKAZAM"}, {level = 52, species = "MAROWAK"}, {level = 55, species = "FLAREON"} },
-      { {level = 53, species = "PIDGEOT"}, {level = 54, species = "MACHAMP"}, {level = 54, species = "ALAKAZAM"}, {level = 52, species = "NINETALES"}, {level = 52, species = "SCYTHER"}, {level = 55, species = "VAPOREON"} },
+      { {level = 20, species = "RATICATE"}, {level = 22, species = "WEEPINBELL"}, {level = 21, species = "SANDSHREW"}, {level = 24, species = "IVYSAUR"} },
+      { {level = 34, species = "FEAROW"}, {level = 32, species = "SHELLDER"}, {level = 32, species = "GROWLITHE"}, {level = 33, species = "KADABRA"}, {level = 35, species = "IVYSAUR"} },
+      { {level = 34, species = "FEAROW"}, {level = 32, species = "MAGNEMITE"}, {level = 33, species = "KADABRA"}, {level = 32, species = "SHELLDER"}, {level = 35, species = "CHARMELEON"} },
+      { {level = 34, species = "FEAROW"}, {level = 32, species = "VULPIX"}, {level = 33, species = "KADABRA"}, {level = 32, species = "SCYTHER"}, {level = 35, species = "WARTORTLE"} },
+      { {level = 43, species = "PARASECT"}, {level = 44, species = "GYARADOS"}, {level = 43, species = "RHYDON"}, {level = 44, species = "ALAKAZAM"}, {level = 46, species = "VENUSAUR"} },
+      { {level = 43, species = "ELECTABUZZ"}, {level = 44, species = "CLOYSTER"}, {level = 43, species = "DODRIO"}, {level = 44, species = "ALAKAZAM"}, {level = 46, species = "CHARIZARD"} },
+      { {level = 43, species = "VICTREEBEL"}, {level = 44, species = "PORYGON"}, {level = 43, species = "PRIMEAPE"}, {level = 44, species = "ALAKAZAM"}, {level = 46, species = "BLASTOISE"} },
+      { {level = 55, species = "VENUSAUR"}, {level = 53, species = "PIDGEOT"}, {level = 52, species = "MAGNETON"}, {level = 52, species = "MAROWAK"}, {level = 54, species = "ARCANINE"}, {level = 54, species = "ALAKAZAM"} },
+      { {level = 54, species = "FEAROW"}, {level = 52, species = "MAGNETON"}, {level = 53, species = "GOLDUCK"}, {level = 54, species = "ALAKAZAM"}, {level = 52, species = "MAROWAK"}, {level = 55, species = "CHARIZARD"} },
+      { {level = 53, species = "PIDGEOT"}, {level = 54, species = "MACHAMP"}, {level = 54, species = "ALAKAZAM"}, {level = 52, species = "NINETALES"}, {level = 52, species = "SCYTHER"}, {level = 55, species = "BLASTOISE"} },
     } },
     ["OPP_RIVAL3"] = { parties = {
-      { {level = 63, species = "ALAKAZAM"}, {level = 60, species = "RHYDON"}, {level = 61, species = "GYARADOS"}, {level = 63, species = "ARCANINE"}, {level = 62, species = "EXEGGUTOR"}, {level = 65, species = "JOLTEON"} },
-      { {level = 62, species = "MAGNETON"}, {level = 61, species = "DODRIO"}, {level = 63, species = "ALAKAZAM"}, {level = 60, species = "SANDSLASH"}, {level = 62, species = "CLOYSTER"}, {level = 65, species = "FLAREON"} },
-      { {level = 60, species = "MACHAMP"}, {level = 61, species = "PIDGEOT"}, {level = 62, species = "NINETALES"}, {level = 62, species = "VICTREEBEL"}, {level = 63, species = "ALAKAZAM"}, {level = 65, species = "VAPOREON"} },
+      { {level = 63, species = "ALAKAZAM"}, {level = 60, species = "RHYDON"}, {level = 61, species = "GYARADOS"}, {level = 63, species = "ARCANINE"}, {level = 62, species = "MAGNETON"}, {level = 65, species = "VENUSAUR"} },
+      { {level = 62, species = "MAGNETON"}, {level = 61, species = "DODRIO"}, {level = 63, species = "ALAKAZAM"}, {level = 60, species = "SANDSLASH"}, {level = 62, species = "CLOYSTER"}, {level = 65, species = "CHARIZARD"} },
+      { {level = 60, species = "MACHAMP"}, {level = 61, species = "PIDGEOT"}, {level = 62, species = "NINETALES"}, {level = 62, species = "VICTREEBEL"}, {level = 63, species = "ALAKAZAM"}, {level = 65, species = "BLASTOISE"} },
     } },
     ["OPP_ROCKER"] = { parties = {
       { {level = 21, species = "VOLTORB"}, {level = 21, species = "VOLTORB"}, {level = 21, species = "VOLTORB"} },
@@ -487,5 +487,40 @@ return {
       { {level = 17, species = "SPEAROW"}, {level = 17, species = "RATTATA"}, {level = 17, species = "RATTATA"}, {level = 17, species = "SPEAROW"} },
       { {level = 28, species = "SANDSHREW"} },
     } },
+  },
+
+  -- Rival early-battle route variants.  Battles 1-4 (Oak's Lab, Route 22,
+  -- Cerulean, S.S. Anne) use fixed party indexes in the engine's Yellow
+  -- scripts, so the Eevee slot there is replaced by the route's starter
+  -- line stage (base through S.S. Anne, then final from Silph Co. on).
+  -- The trainer.party hook in main.lua swaps in the variant matching the
+  -- player's current route (save.rivalStarter: 1 JOLTEON / 2 FLAREON /
+  -- 3 VAPOREON): Bulbasaur line for Jolteon, Charmander line for Flareon,
+  -- Squirtle line for Vaporeon.
+  rivalVariants = {
+    ["OPP_RIVAL1"] = {
+      [1] = {
+        [1] = { {level = 5, species = "BULBASAUR"} },
+        [2] = { {level = 5, species = "CHARMANDER"} },
+        [3] = { {level = 5, species = "SQUIRTLE"} },
+      },
+      [2] = {
+        [1] = { {level = 9, species = "SPEAROW"}, {level = 8, species = "BULBASAUR"} },
+        [2] = { {level = 9, species = "SPEAROW"}, {level = 8, species = "CHARMANDER"} },
+        [3] = { {level = 9, species = "SPEAROW"}, {level = 8, species = "SQUIRTLE"} },
+      },
+      [3] = {
+        [1] = { {level = 18, species = "SPEAROW"}, {level = 15, species = "RATTATA"}, {level = 15, species = "BELLSPROUT"}, {level = 19, species = "BULBASAUR"} },
+        [2] = { {level = 18, species = "SPEAROW"}, {level = 15, species = "RATTATA"}, {level = 15, species = "BELLSPROUT"}, {level = 19, species = "CHARMANDER"} },
+        [3] = { {level = 18, species = "SPEAROW"}, {level = 15, species = "RATTATA"}, {level = 15, species = "BELLSPROUT"}, {level = 19, species = "SQUIRTLE"} },
+      },
+    },
+    ["OPP_RIVAL2"] = {
+      [1] = {
+        [1] = { {level = 20, species = "RATICATE"}, {level = 22, species = "WEEPINBELL"}, {level = 21, species = "SANDSHREW"}, {level = 24, species = "IVYSAUR"} },
+        [2] = { {level = 20, species = "RATICATE"}, {level = 22, species = "WEEPINBELL"}, {level = 21, species = "SANDSHREW"}, {level = 24, species = "CHARMELEON"} },
+        [3] = { {level = 20, species = "RATICATE"}, {level = 22, species = "WEEPINBELL"}, {level = 21, species = "SANDSHREW"}, {level = 24, species = "WARTORTLE"} },
+      },
+    },
   },
 }

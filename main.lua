@@ -26,6 +26,9 @@ local applyTables, resolveTables -- forward: applyLegacyTables reads the files t
 -- whether the rival patches landed (true when the running game is Yellow);
 -- read by applyTables, exported for tests via the exports table
 local rivalPatchEnabled = false
+-- resolved rival early-battle route variants (see trainers.lua
+-- rivalVariants); read by the trainer.party hook below
+local resolvedVariants = nil
 local function applyLegacyTables(mod)
   local merged = {}
   for _, name in ipairs({ "learnsets.lua", "trainers.lua", "rematches.lua" }) do
@@ -46,7 +49,8 @@ local function applyLegacyTables(mod)
     end
     for k, v in pairs(data) do merged[k] = v end
   end
-  applyTables(mod, merged)
+  local resolved = applyTables(mod, merged)
+  resolvedVariants = resolved and resolved.rivalVariants or nil
 end
 
 -- Pure resolution of one tables struct (the shape learnsets.lua returns)
@@ -89,7 +93,7 @@ resolveTables = function(content, data)
   end
 
   local out = { learnsets = {}, tmhm = {}, encounters = {}, rods = {},
-                trainers = {}, rematches = {} }
+                trainers = {}, rematches = {}, rivalVariants = {} }
 
   for name, entries in pairs(data.learnsets or {}) do
     local id = speciesByName(name)
@@ -200,6 +204,31 @@ resolveTables = function(content, data)
     end
   end
 
+  -- rivalVariants: early-battle route variants (base starter lines), same
+  -- species resolution as trainer parties; a party with any unknown
+  -- species is dropped whole.  Shape: [oppClass][partyIndex][rivalStarter]
+  -- with rivalStarter 1 JOLTEON / 2 FLAREON / 3 VAPOREON.
+  for id, byParty in pairs(data.rivalVariants or {}) do
+    local outParties = {}
+    for partyIndex, byStarter in pairs(byParty) do
+      local outStarters = {}
+      for starter, party in pairs(byStarter) do
+        local ok, slots = true, {}
+        for _, s in ipairs(party) do
+          local sp = speciesByConst(s.species)
+          if not sp then
+            ok = false
+            break
+          end
+          slots[#slots + 1] = { level = s.level, species = sp }
+        end
+        if ok then outStarters[tonumber(starter)] = slots end
+      end
+      if next(outStarters) then outParties[tonumber(partyIndex)] = outStarters end
+    end
+    if next(outParties) then out.rivalVariants[id] = outParties end
+  end
+
   return out, counts
 end
 
@@ -301,6 +330,7 @@ applyTables = function(mod, data)
   if counts.trainers > 0 then
     mod.log:warn("%d trainer classes skipped", counts.trainers)
   end
+  return resolved
 end
 return function(mod)
   local MOVES = {
@@ -547,8 +577,38 @@ return function(mod)
     end
   end)
 
-  mod.events:on("game.ready", function()
+  -- the live Game instance, captured on game.ready so the trainer.party
+  -- hook can read the player's current rival route at battle time
+  local activeGame
+  mod.events:on("game.ready", function(ev)
+    activeGame = ev and ev.game
     applyDragonOption()
+  end)
+
+  -- Pure variant lookup for the rival's early battles (Oak's Lab through
+  -- S.S. Anne), exported so headless tests can drive it.  Returns the
+  -- party for the player's route, or nil when there is no variant.
+  local function rivalVariantFor(oppClass, partyIndex, starter)
+    if not rivalPatchEnabled or not resolvedVariants then return nil end
+    local byParty = resolvedVariants[oppClass]
+    if not byParty then return nil end
+    local byStarter = byParty[partyIndex]
+    if not byStarter then return nil end
+    return byStarter[starter] or byStarter[1]
+  end
+
+  -- Battles 1-4 use fixed party indexes in the Yellow scripts, so the
+  -- Eevee slot there is swapped per route: the party follows the player's
+  -- rivalStarter (1 JOLTEON / 2 FLAREON / 3 VAPOREON), which the engine
+  -- already sets before the Oak's Lab fight and updates from battle 1's
+  -- result.  Later battles pick their own route variants by index, so the
+  -- hook only has to remap OPP_RIVAL1 and OPP_RIVAL2 party 1.
+  mod.hooks:wrap("trainer.party", function(next, oppClass, partyIndex, partyDef)
+    local g = activeGame
+    local starter = (g and g.save and g.save.rivalStarter) or 1
+    local variant = rivalVariantFor(oppClass, partyIndex or 1, starter)
+    if variant then partyDef = variant end
+    return next(oppClass, partyIndex, partyDef)
   end)
 
   mod.exports = {
@@ -556,5 +616,6 @@ return function(mod)
     resolveTables = resolveTables,
     setDragonPhysical = setDragonPhysical,
     rivalPatchEnabled = rivalPatchEnabled,
+    rivalVariantFor = rivalVariantFor,
   }
 end

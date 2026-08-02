@@ -599,6 +599,14 @@ for _, id in ipairs({
   "FLAREON", "NINETALES", "VICTREEBEL", "VAPOREON",
   "KADABRA", "MACHOKE", "GRAVELER", "HAUNTER", "GOLEM", "GENGAR",
   "POLIWHIRL", "POLIWRATH",
+  -- rival starter lines (the Eevee replacement) plus the rest of the
+  -- rival parties that reference them
+  "BULBASAUR", "IVYSAUR", "VENUSAUR",
+  "CHARMANDER", "CHARMELEON", "CHARIZARD",
+  "SQUIRTLE", "WARTORTLE", "BLASTOISE",
+  "RATICATE", "WEEPINBELL", "SANDSHREW", "FEAROW", "SHELLDER",
+  "GROWLITHE", "MAGNEMITE", "VULPIX", "SCYTHER", "PARASECT",
+  "ELECTABUZZ", "PORYGON", "PRIMEAPE", "MAROWAK", "GOLDUCK",
 }) do seedYellowSpecies(id) end
 fresh.trainers.OPP_RIVAL3 = {
   id = "OPP_RIVAL3", name = "RIVAL", index = 8, baseMoney = 200,
@@ -615,17 +623,71 @@ local yellowExports = runYellow.loader.exports.yellow_legacy_changes
 T.eq(yellowExports.rivalPatchEnabled, true, "rival patches are on for Yellow")
 local yellowTrainers = runYellow.loader.content.trainers
 local yRival1 = yellowTrainers:get("OPP_RIVAL1")
-T.eq(yRival1.parties[1][1].species, "EEVEE",
-  "Yellow rival team 1 is the Eevee starter")
-T.eq(yRival1.parties[1][1].level, 5, "the Eevee opens at level 5")
-T.eq(yRival1.parties[3][4].species, "EEVEE",
-  "the final RIVAL1 team still carries the Eevee")
+T.eq(yRival1.parties[1][1].species, "BULBASAUR",
+  "Yellow rival team 1 opens with the Bulbasaur starter")
+T.eq(yRival1.parties[1][1].level, 5, "the starter opens at level 5")
+T.eq(yRival1.parties[2][2].species, "BULBASAUR",
+  "Route 22 rival carries the base starter by default")
+T.eq(yRival1.parties[2][2].level, 8, "Route 22 starter sits at 8")
+T.eq(yRival1.parties[3][4].species, "BULBASAUR",
+  "the final RIVAL1 team carries the base starter")
+T.eq(yRival1.parties[3][4].level, 19, "the Cerulean starter sits at 19")
+local yRival2 = yellowTrainers:get("OPP_RIVAL2")
+T.eq(yRival2.parties[1][4].species, "IVYSAUR",
+  "S.S. Anne rival has evolved the starter to Ivysaur")
+T.eq(yRival2.parties[1][4].level, 24, "S.S. Anne starter sits at 24")
+T.eq(yRival2.parties[2][5].species, "IVYSAUR",
+  "Tower Jolteon-route party swaps the Eeveelution for Ivysaur")
+T.eq(yRival2.parties[3][5].species, "CHARMELEON",
+  "Tower Flareon-route party swaps for Charmeleon")
+T.eq(yRival2.parties[4][5].species, "WARTORTLE",
+  "Tower Vaporeon-route party swaps for Wartortle")
+T.eq(yRival2.parties[5][5].species, "VENUSAUR",
+  "Silph Jolteon-route party is Venusaur")
+T.eq(yRival2.parties[6][5].species, "CHARIZARD",
+  "Silph Flareon-route party is Charizard")
+T.eq(yRival2.parties[7][5].species, "BLASTOISE",
+  "Silph Vaporeon-route party is Blastoise")
+T.eq(yRival2.parties[8][1].species, "VENUSAUR",
+  "Route 22 rematch leads the Jolteon-route Venusaur")
+T.eq(yRival2.parties[8][1].level, 55, "Route 22 rematch starter sits at 55")
+T.eq(yRival2.parties[8][3].species, "MAGNETON",
+  "Jolteon route drops Exeggutor for Magneton (no double Grass)")
+T.eq(yRival2.parties[8][3].level, 52, "the Magneton swap keeps the level")
+T.eq(yRival2.parties[9][6].species, "CHARIZARD",
+  "Route 22 rematch Flareon route ends with Charizard")
+T.eq(yRival2.parties[10][6].species, "BLASTOISE",
+  "Route 22 rematch Vaporeon route ends with Blastoise")
 local yRival3 = yellowTrainers:get("OPP_RIVAL3")
 T.eq(yRival3.rematchIndex, 4, "RIVAL3 marks its rematch team on Yellow")
 T.eq(#yRival3.parties, 4, "RIVAL3 gains the rematch team on Yellow")
 T.eq(yRival3.parties[4][1].species, "ALAKAZAM",
   "the champion rematch opens with ALAKAZAM 77")
 T.eq(yRival3.parties[4][1].level, 77, "the champion rematch leads at 77")
+T.eq(yRival3.parties[1][6].species, "VENUSAUR",
+  "champion Jolteon route ends with Venusaur")
+T.eq(yRival3.parties[1][5].species, "MAGNETON",
+  "champion Jolteon route swaps Exeggutor for Magneton")
+T.eq(yRival3.parties[2][6].species, "CHARIZARD",
+  "champion Flareon route ends with Charizard")
+T.eq(yRival3.parties[3][6].species, "BLASTOISE",
+  "champion Vaporeon route ends with Blastoise")
+T.eq(yRival3.parties[1][6].level, 65, "champion starter sits at 65")
+
+-- the early-battle route variants: battles 1-4 use fixed party indexes,
+-- so the trainer.party hook resolves the route's starter line per
+-- save.rivalStarter (1 JOLTEON / 2 FLAREON / 3 VAPOREON)
+local variantOf = yellowExports.rivalVariantFor
+T.eq(variantOf("OPP_RIVAL1", 1, 1)[1].species, "BULBASAUR",
+  "Oak's Lab variant (Jolteon route) is Bulbasaur")
+T.eq(variantOf("OPP_RIVAL1", 2, 2)[2].species, "CHARMANDER",
+  "Route 22 variant (Flareon route) is Charmander")
+T.eq(variantOf("OPP_RIVAL1", 3, 3)[4].species, "SQUIRTLE",
+  "Cerulean variant (Vaporeon route) is Squirtle")
+T.eq(variantOf("OPP_RIVAL2", 1, 3)[4].species, "WARTORTLE",
+  "S.S. Anne variant (Vaporeon route) is Wartortle")
+T.eq(variantOf("OPP_RIVAL3", 1, 1), nil,
+  "later rival battles have no hook variant (engine picks the party)")
 runYellow.release()
 GameVersion.set("red")
 
