@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.9.0] - 2026-08-02
+
+### Added
+
+- The Crystal Tear post-game quest: after beating the Hall of Fame with
+  all 150 obtainable species caught (Mew excluded -- it cannot be
+  obtained), Professor Oak gifts the CRYSTAL TEAR key item.  Using it in
+  Cerulean Cave B1F once Mewtwo is dealt with plays the "MEW!" reveal
+  with Mew's cry and starts a battle with a level-75 Mew carrying
+  PSYCHIC / MEGA PUNCH / AMNESIA / SOFTBOILED.  Whatever the outcome
+  (win, catch, flee or loss) the tear then shatters and leaves the bag:
+  the encounter is one shot for good.
+- `check_crystal_tear_gift` script verb (the Oak gift condition:
+  Hall of Fame + 150 owned, Mew excluded).
+
 ## [1.8.0] - 2026-08-02
 
 ### Changed

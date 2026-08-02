@@ -9,6 +9,18 @@ Twineedle 40x2...). Ghost attacks now use the Special stat and are
 super effective against Psychic; the **DRAGON PHYS** toggle in MODS > yellow_legacy_changes flips Dragon
 moves to the physical stat (persisted, default OFF).
 
+## Crystal Tear quest (post-game)
+
+After beating the Hall of Fame with all 150 obtainable species caught
+(Mew excluded -- it cannot be obtained in-game), talk to Professor Oak
+in his lab: he gifts the **CRYSTAL TEAR** key item.  Take it to
+**Cerulean Cave B1F** once Mewtwo has been dealt with (defeated,
+caught or fled) and use it from the bag: a "MEW!" reveal plays with
+Mew's cry, then a **level-75 Mew** appears carrying PSYCHIC /
+MEGA PUNCH / AMNESIA / SOFTBOILED.  Whatever the outcome -- win, catch,
+flee, or lose -- the **CRYSTAL TEAR shatters** and leaves the bag: the
+encounter is one shot for good.
+
 Tables show the **new values**; `(+X)` / `(-X)` marks how much the value
 moved from vanilla.
 

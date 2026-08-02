@@ -17,6 +17,21 @@ Data.moves.SKY_ATTACK = {
   id = "SKY_ATTACK", name = "SKY ATTACK", index = 88, type = "FLYING",
   power = 140, accuracy = 90, pp = 5, effect = "EFFECT_1E",
 }
+-- the Mew level-up set the Crystal Tear quest patches in: the learnset
+-- entries are real move ids, so the fixture needs the records to exist
+-- (PSYCHIC_M is the engine's id for the move named PSYCHIC)
+for _, mv in ipairs({
+  { id = "POUND", name = "POUND", index = 1, type = "NORMAL" },
+  { id = "TRANSFORM", name = "TRANSFORM", index = 144, type = "NORMAL" },
+  { id = "METRONOME", name = "METRONOME", index = 118, type = "NORMAL" },
+  { id = "BARRIER", name = "BARRIER", index = 112, type = "PSYCHIC_TYPE" },
+  { id = "PSYCHIC_M", name = "PSYCHIC", index = 94, type = "PSYCHIC_TYPE" },
+  { id = "MEGA_PUNCH", name = "MEGA PUNCH", index = 5, type = "NORMAL" },
+  { id = "AMNESIA", name = "AMNESIA", index = 133, type = "PSYCHIC_TYPE" },
+  { id = "SOFTBOILED", name = "SOFTBOILED", index = 135, type = "NORMAL" },
+}) do
+  Data.moves[mv.id] = mv
+end
 Data.pokemon.PIKACHU = {
   id = "PIKACHU", name = "PIKACHU", index = 25, dex = 25,
   baseStats = { hp = 35, attack = 55, defense = 30, speed = 90, special = 50 },
@@ -514,7 +529,101 @@ T.check(mergedTypes ~= nil and mergedTypes.GHOST ~= nil,
 T.eq(mergedTypes.GHOST.category, "special",
   "the merged GHOST record is special")
 
--- ---------- dragon physical toggle (MODS menu per-mod options) ----------
+-- ---------- Crystal Tear post-game quest ----------
+
+local tear = exports.crystalTear
+T.check(type(tear) == "table", "crystalTear helpers are exported")
+
+-- the item registers as a non-tossable key item
+local items = run.loader.content.items
+local crystal = items:get("CRYSTAL_TEAR")
+T.check(crystal ~= nil, "CRYSTAL_TEAR is registered")
+T.eq(crystal.name, "CRYSTAL TEAR", "the item display name")
+T.eq(crystal.keyItem, true, "it is a key item (not tossable)")
+T.eq(crystal.tossable, false, "the schema says non-tossable too")
+T.eq(crystal.price, 0, "it cannot be sold")
+
+-- the gift script verb is registered and dispatchable
+local commands = run.loader.content.commands
+local giftVerb = commands:get("check_crystal_tear_gift")
+T.check(type(giftVerb) == "function", "check_crystal_tear_gift is a command")
+
+-- the Mew learnset patch lands in the merged view
+local mew = pokemon:get("MEW")
+T.check(mew ~= nil, "MEW resolves (op-only learnset patch)")
+T.eq(#mew.learnset, 8, "Mew's learnset has eight entries")
+local Pokemon = require("src.pokemon.Pokemon")
+local movesAt75 = Pokemon.movesAtLevel(
+  { level1Moves = {}, learnset = mew.learnset }, 75)
+T.eq(#movesAt75, 4, "level 75 carries four moves")
+T.eq(movesAt75[1], "PSYCHIC_M", "PSYCHIC is the level-75 opener")
+T.eq(movesAt75[2], "MEGA_PUNCH", "MEGA_PUNCH covers offense")
+T.eq(movesAt75[3], "AMNESIA", "AMNESIA sets up special")
+T.eq(movesAt75[4], "SOFTBOILED", "SOFTBOILED recovers")
+
+-- the condition: Hall of Fame plus 150 owned (Mew never counts)
+T.check(tear.legacyComplete(nil) == false, "no save is not complete")
+T.check(tear.legacyComplete({ hallOfFame = {} }) == false,
+  "no Hall of Fame entry is not complete")
+T.check(tear.legacyComplete({ hallOfFame = { {} } }) == false,
+  "150 owned are required")
+local function saveWith(nOwned, withMew)
+  local owned = {}
+  for i = 1, nOwned do owned[("MON_%03d"):format(i)] = true end
+  if withMew then owned.MEW = true end
+  return { hallOfFame = { {} }, pokedex = { owned = owned } }
+end
+T.check(tear.legacyComplete(saveWith(149)) == false, "149 owned falls short")
+T.check(tear.legacyComplete(saveWith(150)) == true, "150 owned completes it")
+T.check(tear.legacyComplete(saveWith(149, true)) == false,
+  "Mew does not count toward the 150")
+T.check(tear.legacyComplete(saveWith(150, true)) == true,
+  "150 non-Mew species still completes it with Mew owned too")
+T.eq(tear.ownedWithoutMew(saveWith(149, true)), 149,
+  "ownedWithoutMew excludes Mew")
+
+-- the Oak gift branch: valid rows that fall through to the base script
+local ScriptRunner = require("src.script.ScriptRunner")
+local Commands = require("src.script.Commands")
+local giftRows = tear.giftRows()
+local lookup = function(verb)
+  return Commands.resolve(run.data, verb) ~= nil
+end
+T.eq(#ScriptRunner.validate(giftRows, lookup), 0, "the gift branch validates")
+T.eq(giftRows[1][1], "face_player", "Oak faces the player first")
+local function rowHas(rows, verb, arg)
+  for _, row in ipairs(rows) do
+    if row[1] == verb and (arg == nil or row[2] == arg) then return true end
+  end
+  return false
+end
+T.check(rowHas(giftRows, "check_crystal_tear_gift"),
+  "the gift branch runs the readiness verb")
+T.check(rowHas(giftRows, "give_item", "CRYSTAL_TEAR"),
+  "the gift branch hands over the tear")
+T.check(rowHas(giftRows, "set_flag", "EVENT_GOT_CRYSTAL_TEAR"),
+  "the gift branch marks the handover")
+T.check(rowHas(giftRows, "label", "crystal_tear_regular"),
+  "the fall-through label sits where the base script follows")
+
+-- the cave use sequence: cry reveal, then the level-75 battle, then
+-- the tear shatters and leaves the bag whatever the outcome
+local mewRows = tear.mewRows()
+T.eq(#ScriptRunner.validate(mewRows, lookup), 0, "the reveal script validates")
+T.eq(mewRows[1][1], "play_cry", "the reveal leads with the cry")
+T.eq(mewRows[1][2], "MEW", "the cry is Mew's")
+T.eq(mewRows[2][1], "show_text", "the popup is a text box")
+T.eq(mewRows[2][2], "MEW!", "the popup reads MEW!")
+T.eq(mewRows[3][1], "static_battle", "the battle is a static wild fight")
+T.eq(mewRows[3][2], "MEW", "the battle is against Mew")
+T.eq(mewRows[3][3], 75, "Mew fights at level 75")
+T.eq(mewRows[3][4], "EVENT_BEAT_MEW", "the battle stamps its beat flag")
+T.eq(mewRows[4][1], "set_flag", "the quest finishes even on a loss")
+T.eq(mewRows[4][2], "EVENT_BEAT_MEW", "the loss path stamps the flag too")
+T.eq(mewRows[5][1], "take_item", "the tear is consumed after the battle")
+T.eq(mewRows[5][2], "CRYSTAL_TEAR", "the consumed item is the tear")
+T.eq(mewRows[6][1], "show_text", "the shatter gets its own text box")
+T.eq(mewRows[6][2], "The CRYSTAL TEAR\nshatters!", "the shatter text reads right")
 
 
 T.check(exports ~= nil and exports.setDragonPhysical ~= nil,
@@ -584,6 +693,18 @@ GameVersion.set("yellow")
 -- wrote its merged view into the module Data, and an inheriting table
 -- would leak that into this loader's base and collide with its builtins
 local fresh = require("tests.fixture_data").load()
+for _, mv in ipairs({
+  { id = "POUND", name = "POUND", index = 1, type = "NORMAL" },
+  { id = "TRANSFORM", name = "TRANSFORM", index = 144, type = "NORMAL" },
+  { id = "METRONOME", name = "METRONOME", index = 118, type = "NORMAL" },
+  { id = "BARRIER", name = "BARRIER", index = 112, type = "PSYCHIC_TYPE" },
+  { id = "PSYCHIC_M", name = "PSYCHIC", index = 94, type = "PSYCHIC_TYPE" },
+  { id = "MEGA_PUNCH", name = "MEGA PUNCH", index = 5, type = "NORMAL" },
+  { id = "AMNESIA", name = "AMNESIA", index = 133, type = "PSYCHIC_TYPE" },
+  { id = "SOFTBOILED", name = "SOFTBOILED", index = 135, type = "NORMAL" },
+}) do
+  fresh.moves[mv.id] = mv
+end
 local function seedYellowSpecies(id)
   fresh.pokemon[id] = {
     id = id, name = id, index = 1, dex = 1,

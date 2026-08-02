@@ -22,6 +22,8 @@
 -- and the disassembly's data/trainers/parties.asm): species and move
 -- display names are resolved against the player's imported data at load,
 -- so the files work on any build without shipping a name table.
+-- The Crystal Tear post-game quest ships in crystal_tear.lua (pure rows
+-- and conditions, wired below on game.ready).
 local applyTables, resolveTables -- forward: applyLegacyTables reads the files then applies
 -- whether the rival patches landed (true when the running game is Yellow);
 -- read by applyTables, exported for tests via the exports table
@@ -487,6 +489,140 @@ return function(mod)
 
   applyLegacyTables(mod)
 
+  -- ---- Crystal Tear post-game quest (crystal_tear.lua) ----
+  local CrystalTear = {}
+  do
+    local source = mod:read("crystal_tear.lua")
+    if not source then
+      mod.log:error("crystal_tear.lua missing from %s -- reinstall the mod",
+        mod.path)
+    else
+      local chunk, compileErr = load(source,
+        "@" .. mod.path .. "/crystal_tear.lua")
+      if chunk then
+        local ok, loaded = pcall(chunk)
+        if ok and type(loaded) == "table" then CrystalTear = loaded end
+      end
+    end
+  end
+
+  -- the key item Oak hands over once the Hall of Fame run is complete
+  mod.content.items:register("CRYSTAL_TEAR", {
+    id = "CRYSTAL_TEAR", name = "CRYSTAL TEAR",
+    price = 0, tossable = false, keyItem = true,
+  })
+
+  -- the gift script verb: lastCheck = Hall of Fame + 150 species owned
+  -- (Mew excluded).  Used by the rows prepended to Oak's OAKS_LAB talk.
+  mod.content.commands:register("check_crystal_tear_gift", function(ctx)
+    ctx.lastCheck = CrystalTear.legacyComplete(ctx and ctx.save)
+  end)
+
+  -- Mew's level-up set so the level-75 wild Mew carries a strong moveset
+  -- (PSYCHIC / MEGA_PUNCH / AMNESIA / SOFTBOILED at 75)
+  mod.content.pokemon:patch("MEW", { learnset = CrystalTear.mewLearnset() })
+
+  mod.events:on("game.ready", function()
+    local Strings = require("src.core.Strings")
+    local Flags = require("src.script.Flags")
+
+    -- Oak's lab talk: prepend the gift branch to the base dialogue.  The
+    -- branch is a mod-owned script (check_flag/set_flag rows are plain
+    -- EVENT_* flags, no mod: fields), and it only replaces the base when
+    -- the vanilla resolution really is the base script -- another mod's
+    -- talk override for the same constant still wins.
+    local MapScripts = require("src.script.MapScripts")
+    local vanillaTalkScript = MapScripts.talkScript
+    local oakGiftScript
+    local function buildOakGiftScript()
+      if oakGiftScript then return oakGiftScript end
+      local base = MapScripts.baseTalk("OAKS_LAB", "TEXT_OAKSLAB_OAK1")
+      if not base then return nil end
+      local gift = CrystalTear.giftRows()
+      local rows = {}
+      for i, row in ipairs(gift) do rows[i] = row end
+      for i, row in ipairs(base) do rows[#gift + i] = row end
+      oakGiftScript = rows
+      return rows
+    end
+    MapScripts.talkScript = function(mapId, textConst)
+      if mapId == "OAKS_LAB" and textConst == "TEXT_OAKSLAB_OAK1" then
+        local base = MapScripts.baseTalk(mapId, textConst)
+        local resolved = vanillaTalkScript(mapId, textConst)
+        if base and resolved == base then
+          local script = buildOakGiftScript()
+          if script then return script end
+        end
+      end
+      return vanillaTalkScript(mapId, textConst)
+    end
+
+    -- the bag list instance, latched so the tear's use flow can close
+    -- the bag before the reveal script runs (the overworld's script
+    -- runner only ticks while the overworld is the top stack state)
+    local activeBag = nil
+    local BagMenu = require("src.ui.BagMenu")
+    local vanillaBagNew = BagMenu.new
+    BagMenu.new = function(game, opts)
+      local list = vanillaBagNew(game, opts)
+      activeBag = list
+      return list
+    end
+
+    -- the reveal script, deferred one update when a map script is still
+    -- running (e.g. a background NPC walk): it must not be started while
+    -- the runner is busy, and the runner only ticks when the overworld
+    -- is the top state -- which closing the bag just restored
+    local pendingMewScript = nil
+    local ScriptRunner = require("src.script.ScriptRunner")
+    local vanillaRunnerUpdate = ScriptRunner.update
+    ScriptRunner.update = function(self)
+      vanillaRunnerUpdate(self)
+      if pendingMewScript and not self:isRunning() then
+        local rows = pendingMewScript
+        pendingMewScript = nil
+        self:run(rows, {})
+      end
+    end
+
+    -- the tear's field use: only on CERULEAN_CAVE_B1F, only after Mewtwo
+    -- is gone, only once -- and only for a player who earned it
+    local ItemEffects = require("src.inventory.ItemEffects")
+    local vanillaUse = ItemEffects.use
+    ItemEffects.use = function(data, save, itemId, target, battle, moveIndex, ow)
+      if itemId == "CRYSTAL_TEAR" then
+        if battle then
+          return "failed", { Strings("OAK: %s!\nThis isn't the\ntime to use that!",
+                                     save.player.name) }
+        end
+        if Flags.get(save, "EVENT_BEAT_MEW") then
+          return "failed", { Strings("It won't have\nany effect.") }
+        end
+        if not (ow and ow.map and ow.map.id == "CERULEAN_CAVE_B1F") then
+          return "failed", { Strings("The CRYSTAL TEAR\nisn't reacting...") }
+        end
+        if not Flags.get(save, "EVENT_BEAT_MEWTWO") then
+          return "failed", { Strings("The CRYSTAL TEAR\nquivers faintly...") }
+        end
+        if not CrystalTear.legacyComplete(save) then
+          return "failed", { Strings("The CRYSTAL TEAR\nlies dormant...") }
+        end
+        -- Mew reveals itself: close the bag, then the "MEW!" cry text
+        -- and the level-75 battle run as a map script
+        if activeBag then activeBag:close() end
+        if ow and ow.runner then
+          if ow.runner:isRunning() then
+            pendingMewScript = CrystalTear.mewRows()
+          else
+            ow.runner:run(CrystalTear.mewRows(), {})
+          end
+        end
+        return "kept", {}
+      end
+      return vanillaUse(data, save, itemId, target, battle, moveIndex, ow)
+    end
+  end)
+
   mod.events:on("game.ready", function()
     local Stats = require("src.pokemon.Stats")
     local Damage = require("src.battle.Damage")
@@ -617,5 +753,6 @@ return function(mod)
     setDragonPhysical = setDragonPhysical,
     rivalPatchEnabled = rivalPatchEnabled,
     rivalVariantFor = rivalVariantFor,
+    crystalTear = CrystalTear,
   }
 end
