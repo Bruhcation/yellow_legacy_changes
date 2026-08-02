@@ -24,7 +24,7 @@
 -- so the files work on any build without shipping a name table.
 -- The Crystal Tear post-game quest ships in crystal_tear.lua (pure rows
 -- and conditions, wired below on game.ready).
-local applyTables, resolveTables -- forward: applyLegacyTables reads the files then applies
+local applyTables, resolveTables, encounterPatchFor
 -- whether the rival patches landed (true when the running game is Yellow);
 -- read by applyTables, exported for tests via the exports table
 local rivalPatchEnabled = false
@@ -263,12 +263,32 @@ applyTables = function(mod, data)
     mod.content.pokemon:patch(id, { tmhm = list })
   end
 
-  -- encounters: grass + surf slot tables; rates stay vanilla
-  for mid, entry in pairs(resolved.encounters) do
+  -- encounters: grass + surf slot tables.  A rate is always carried into
+  -- the patch: deep-merge preserves unpatched leaves, so maps whose base
+  -- data HAS a water/grass table keep their own rate, while a table the
+  -- base lacks (Yellow Legacy adds surf where the Red/Blue data has none,
+  -- e.g. Route 13) still rolls instead of crashing on a nil rate.  The
+  -- fallback chain borrows the map's sibling table, then the engine's
+  -- vanilla surf rate.
+  encounterPatchFor = function(base, entry)
     local patch = {}
-    if entry.grass then patch.grass = { slots = entry.grass } end
-    if entry.water then patch.water = { slots = entry.water } end
-    mod.content.encounters:patch(mid, patch)
+    if entry.grass then
+      patch.grass = { slots = entry.grass }
+      local rate = base and base.grass and base.grass.rate
+                   or (base and base.water and base.water.rate) or 5
+      patch.grass.rate = rate
+    end
+    if entry.water then
+      patch.water = { slots = entry.water }
+      local rate = base and base.water and base.water.rate
+                   or (base and base.grass and base.grass.rate) or 5
+      patch.water.rate = rate
+    end
+    return patch
+  end
+  for mid, entry in pairs(resolved.encounters) do
+    mod.content.encounters:patch(mid, encounterPatchFor(
+      mod.content.encounters:get(mid), entry))
   end
 
   -- fishing: per-map rod pools behind the three rod keys
@@ -299,17 +319,26 @@ applyTables = function(mod, data)
   end
 
   -- rematches: append the hack's rematch team to the class's parties and
-  -- mark its index, so a trainer-rematch mod can pick the team.  Only
-  -- classes this mod already rebalances are touched; the rematch team
-  -- never takes index 1 of a class it does not own.  Rival rematch teams
-  -- are Yellow Legacy content, so they follow the same version gate.
+  -- mark its index, so a trainer-rematch mod can pick the team.  Classes
+  -- this mod rebalances append to the rebalanced parties; a class it does
+  -- not rebalance (Brock keeps the vanilla team, so trainers.lua omits
+  -- him) appends to the live base parties instead, so its rematch team is
+  -- never lost.  The rematch team never takes index 1 of a class it does
+  -- not own.  Rival rematch teams are Yellow Legacy content, so they
+  -- follow the same version gate.
   for id, team in pairs(resolved.rematches) do
     if RIVAL_CLASSES[id] and not rivalPatchEnabled then
       -- Red/Blue: the rival keeps its normal teams, rematch included
     else
       local entry = resolved.trainers[id]
       if not entry then
-        mod.log:warn("rematch team for %s skipped (class not rebalanced by this mod)", id)
+        local base = mod.content.trainers:get(id)
+        if base and type(base.parties) == "table" and #base.parties > 0 then
+          entry = { parties = base.parties }
+        end
+      end
+      if not entry then
+        mod.log:warn("rematch team for %s skipped (no parties to append to)", id)
       else
         local parties = entry.parties
         local patch = { parties = {}, rematchIndex = #parties + 1 }
@@ -750,6 +779,7 @@ return function(mod)
   mod.exports = {
     applyTables = applyTables,
     resolveTables = resolveTables,
+    encounterPatchFor = encounterPatchFor,
     setDragonPhysical = setDragonPhysical,
     rivalPatchEnabled = rivalPatchEnabled,
     rivalVariantFor = rivalVariantFor,

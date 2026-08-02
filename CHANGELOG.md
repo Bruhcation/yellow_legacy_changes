@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.9.2] - 2026-08-02
+
+### Fixed
+
+- Route 13 blue screen while surfing: Yellow Legacy adds a surf encounter
+  table to maps the Red/Blue data has none for (Route 13), and the patch
+  landed without a rate — a nil rate crashed the encounter roll on the
+  first surf step.  Encounter patches now always carry a rate: the map's
+  own existing water rate, else its grass rate, else the engine's vanilla
+  surf rate.  A map's existing rates are unchanged.
+
+## [1.9.1] - 2026-08-02
+
+### Fixed
+
+- Brock's rematch team (L64-65 OMASTAR / ONIX / KABUTOPS / GOLEM /
+  NINETALES / AERODACTYL) now applies.  It was skipped because the hack
+  does not rebalance Brock's main team, so trainers.lua omits the class;
+  a class without a rebalanced team now appends the rematch team to its
+  live vanilla parties instead (the rematch team never takes index 1).
+
 ## [1.9.0] - 2026-08-02
 
 ### Added

@@ -52,6 +52,15 @@ Data.trainers.OPP_MISTY = {
     { { level = 18, species = "STARYU" }, { level = 21, species = "STARMIE" } },
   },
 }
+-- seed a vanilla Brock base: the hack does not rebalance him (his team
+-- is unchanged), so trainers.lua omits the class -- the rematch fallback
+-- must append his rematch team to these vanilla parties anyway
+Data.trainers.OPP_BROCK = {
+  id = "OPP_BROCK", name = "BROCK", index = 1, baseMoney = 16,
+  parties = {
+    { { level = 12, species = "GEODUDE" }, { level = 14, species = "ONIX" } },
+  },
+}
 -- seed a Red/Blue-style rival base: the three counter-pick starter teams
 -- (ordered by the player's starter choice), which must survive the mod on
 -- Red/Blue and only be replaced by the Eevee teams when running Yellow
@@ -92,6 +101,7 @@ for _, id in ipairs({
   "FLAREON", "MACHAMP", "PIDGEOT", "VAPOREON",
   "GRAVELER", "HAUNTER", "GENGAR", "POLIWHIRL", "POLIWRATH",
   "SEADRA", "GOLDUCK", "LAPRAS", "BLASTOISE",
+  "OMASTAR", "KABUTOPS", "GEODUDE",
   "EEVEE", "SPEAROW", "RATTATA", "BELLSPROUT",
   "CHARMANDER", "SQUIRTLE", "BULBASAUR",
 }) do
@@ -340,6 +350,17 @@ T.eq(rm[1].level, 64, "the rematch leads at 64")
 T.eq(rm[1].species, "SEADRA", "SEADRA leads the rematch team")
 T.eq(rm[6].level, 65, "the anchor sits at 65")
 T.eq(rm[6].species, "STARMIE", "STARMIE anchors the rematch team")
+
+-- a class the mod does not rebalance (Brock) still gains the rematch
+-- team, appended to its vanilla parties from the live base
+local brock = trainers:get("OPP_BROCK")
+T.eq(brock.rematchIndex, 2, "BROCK marks its rematch team at index 2")
+T.eq(#brock.parties, 2, "BROCK keeps the vanilla team and gains the rematch")
+T.eq(brock.parties[1][1].level, 12, "vanilla Brock team untouched at index 1")
+T.eq(brock.parties[1][2].species, "ONIX", "ONIX stays the vanilla ace")
+T.eq(#brock.parties[2], 6, "Brock's rematch team is a full six")
+T.eq(brock.parties[2][1].species, "OMASTAR", "OMASTAR leads Brock's rematch")
+T.eq(brock.parties[2][1].level, 64, "Brock's rematch leads at 64")
 
 -- on Red/Blue (the test's default process state) the rival keeps its
 -- counter-pick starter teams and gains no Yellow Legacy content
@@ -737,6 +758,34 @@ fresh.trainers.OPP_RIVAL3 = {
     { { level = 60, species = "MACHAMP" }, { level = 65, species = "VAPOREON" } },
   },
 }
+-- ---------- encounter rates survive the patch (Route 13 surf crash) ----------
+
+do
+  -- the fixture's FIX_ROUTE has grass but no water, exactly the shape of
+  -- ROUTE_13 in the Red/Blue data; a workbook surf table must never be
+  -- patched rate-less (a nil rate crashes the encounter roll mid-surf)
+  local function patchFor(entry)
+    return exports.encounterPatchFor({ grass = { rate = 25 } }, entry)
+  end
+
+  local p1 = patchFor({ water = { { 15, "Slowpoke" } } })
+  T.eq(p1.water.rate, 25,
+    "a surf table on a map with no base water inherits the grass rate")
+  T.eq(#p1.water.slots, 1, "the surf slots land alongside the rate")
+  T.eq(p1.grass, nil, "no grass entry -> no grass patch")
+
+  local p2 = exports.encounterPatchFor(
+    { grass = { rate = 25 }, water = { rate = 5, slots = {} } },
+    { water = { { 15, "Slowpoke" } } })
+  T.eq(p2.water.rate, 5, "an existing base water rate wins")
+
+  local p3 = exports.encounterPatchFor({}, { water = { { 15, "Slowpoke" } } })
+  T.eq(p3.water.rate, 5, "no base at all -> the engine's vanilla surf rate")
+
+  local p4 = patchFor({ grass = { { 3, "FIXMON_A" } } })
+  T.eq(p4.grass.rate, 25, "a grass patch keeps the base rate")
+end
+
 local runYellow = T.sdk.loadMod("mods/yellow_legacy_changes", { data = fresh })
 T.eq(#runYellow.errors, 0,
   "yellow load is clean (" .. tostring(runYellow.errors[1]) .. ")")
