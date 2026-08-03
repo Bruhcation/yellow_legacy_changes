@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.3] - 2026-08-03
+
+### Fixed
+
+- Nidoran♂ and Nidoran♀ now appear in the wild.  The species resolution
+  looked them up by display name, but the gendered display names
+  ("NIDORAN♂" / "NIDORAN♀") both normalize to "NIDORAN" while the tables
+  spelled them "Nidoran_m" / "Nidoran-f", so every Nidoran encounter,
+  learnset and TM/HM slot was silently dropped.  Species resolution now
+  falls back to the registry ids (NIDORAN_M / NIDORAN_F), keeping the two
+  genders distinct.
+
 ## [1.9.2] - 2026-08-02
 
 ### Fixed

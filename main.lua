@@ -84,7 +84,12 @@ resolveTables = function(content, data)
     return id
   end
   local function speciesByName(name)
-    local id = speciesId[norm(name)]
+    -- display names first, then ROM constants ("NIDORAN_M") / the mod's
+    -- workbook spellings ("Nidoran_m", "Nidoran-f"): the gendered species
+    -- display names ("NIDORAN♂" / "NIDORAN♀") both normalize to
+    -- "NIDORAN", so the id map is the only way to tell them apart
+    local key = norm(name)
+    local id = speciesId[key] or constId[key]
     if not id then counts.species = counts.species + 1 end
     return id
   end

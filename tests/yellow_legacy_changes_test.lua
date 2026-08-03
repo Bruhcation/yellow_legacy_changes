@@ -107,6 +107,22 @@ for _, id in ipairs({
 }) do
   seedSpecies(id)
 end
+-- gendered species: the registry id differs from the display name
+-- ("NIDORAN_F" vs "NIDORAN♀"), and the display names collide once
+-- normalized (both become "NIDORAN") -- resolution must fall back to
+-- the registry id map so the genders stay distinct
+Data.pokemon["NIDORAN_F"] = {
+  id = "NIDORAN_F", name = "NIDORAN♀", index = 29, dex = 29,
+  baseStats = { hp = 55, attack = 47, defense = 52, speed = 41, special = 40 },
+  catchRate = 235, baseExp = 59, growthRate = "MEDIUM_SLOW",
+  level1Moves = {}, tmhm = {}, learnset = {}, evolutions = {},
+}
+Data.pokemon["NIDORAN_M"] = {
+  id = "NIDORAN_M", name = "NIDORAN♂", index = 32, dex = 32,
+  baseStats = { hp = 46, attack = 57, defense = 40, speed = 50, special = 40 },
+  catchRate = 235, baseExp = 60, growthRate = "MEDIUM_SLOW",
+  level1Moves = {}, tmhm = {}, learnset = {}, evolutions = {},
+}
 
 -- vanilla evolution rows, so the merged view shows the hack's changes
 local function seedEvo(id, evos)
@@ -510,6 +526,42 @@ T.check(resolved.encounters["NO_SUCH_MAP"] == nil,
   "an unknown map resolves to nothing")
 T.eq(counts.species, 1, "one unknown species counted")
 T.eq(counts.maps, 1, "one unknown map counted")
+
+-- gendered species resolve through the registry id fallback: the mod's
+-- workbook spellings ("Nidoran-f", "Nidoran_m") and the ROM constants
+-- ("NIDORAN_F") all land on distinct ids, never colliding on the
+-- normalized display name
+local miniGender = {
+  learnsets = {
+    ["Nidoran-f"] = { { 1, "Fix Tackle" }, { 12, "Fix Ember" } },
+    ["Nidoran-m"] = { { 1, "Fix Tackle" }, { 12, "Fix Cut" } },
+  },
+  tmhm = {
+    ["Nidoran-f"] = { "Fix Cut" },
+  },
+  encounters = {
+    FIX_ROUTE = {
+      grass = { { 17, "Nidoran_m" }, { 17, "Nidoran_f" } },
+      water = { { 6, "Nidoran_f" } },
+      rods = { OLD_ROD = { { 3, "Nidoran_m" } } },
+    },
+  },
+}
+local resolvedG, countsG = resolveTables(run.loader.content, miniGender)
+T.eq(resolvedG.learnsets["NIDORAN_F"].learnset[2].move, "FIX_EMBERISH",
+  "Nidoran-f learnset resolves to NIDORAN_F")
+T.eq(resolvedG.learnsets["NIDORAN_M"].learnset[2].move, "FIX_CUT",
+  "Nidoran-m learnset resolves to NIDORAN_M")
+T.eq(#resolvedG.tmhm["NIDORAN_F"], 1, "Nidoran-f tmhm resolves to NIDORAN_F")
+T.eq(resolvedG.encounters["FIX_ROUTE"].grass[1].species, "NIDORAN_M",
+  "Nidoran_m grass slot resolves to NIDORAN_M")
+T.eq(resolvedG.encounters["FIX_ROUTE"].grass[2].species, "NIDORAN_F",
+  "Nidoran_f grass slot resolves to NIDORAN_F (genders stay distinct)")
+T.eq(resolvedG.encounters["FIX_ROUTE"].water[1].species, "NIDORAN_F",
+  "Nidoran_f water slot resolves to NIDORAN_F")
+T.eq(resolvedG.rods.OLD_ROD["FIX_ROUTE"][1].species, "NIDORAN_M",
+  "Nidoran_m rod slot resolves to NIDORAN_M")
+T.eq(countsG.species, 0, "no gendered species is lost")
 
 -- trainer parties resolve ROM constants against registry ids
 local mini2 = {
