@@ -15,8 +15,9 @@ An optional challenge with three rules: **forced SET style** (no free
 switch after an enemy faint), **no items in battle** (Poké Balls
 excepted — catching still works; enemy trainers keep their items), and
 **level caps by gym badge**.  Oak asks "Play HARD MODE?" when you start
-a new game, and the **HARD MODE** toggle in MODS > yellow_legacy_changes
-flips a run at any time (persisted, default OFF).
+a new game, and the **HARD MODE** row in the in-game **OPTIONS** menu
+(right under BATTLE STYLE) flips a run at any time (persisted, default
+OFF).
 
 | Badges | Level cap | Badges | Level cap |
 |---|---|---|---|

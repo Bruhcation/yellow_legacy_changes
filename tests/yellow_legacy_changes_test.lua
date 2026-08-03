@@ -707,18 +707,41 @@ T.eq(mergedTypes.DRAGON.category, "physical", "DRAGON is physical when ON")
 exports.setDragonPhysical(run.data, false)
 T.eq(mergedTypes.DRAGON.category, "special", "DRAGON returns to special when OFF")
 
--- the mod declares toggle rows in the MODS menu options schema
+-- the mod declares a toggle row in the MODS menu options schema
+-- (dragon physical only; the hard mode toggle lives in the OPTIONS menu)
 local schema = run.loader.optionSchemas.yellow_legacy_changes
-T.check(type(schema) == "table" and #schema == 2,
-  "the mod defines two options rows")
-T.eq(schema[1].key, "dragonPhysical", "the first row is the dragon toggle")
+T.check(type(schema) == "table" and #schema == 1,
+  "the mod defines one options row")
+T.eq(schema[1].key, "dragonPhysical", "the row is the dragon toggle")
 T.eq(schema[1].type, "toggle", "the row is a toggle")
 T.eq(schema[1].label, "DRAGON PHYS", "the row label is clear")
 T.eq(schema[1].default, false, "defaults to OFF (Gen 1 faithful)")
-T.eq(schema[2].key, "hardMode", "the second row is the hard mode toggle")
-T.eq(schema[2].type, "toggle", "the row is a toggle")
-T.eq(schema[2].label, "HARD MODE", "the row label is clear")
-T.eq(schema[2].default, false, "defaults to OFF (normal rules)")
+
+-- the HARD MODE toggle is an OPTIONS-menu row (ui.options.rows hook),
+-- anchored after BATTLE STYLE
+local Strings = require("src.core.Strings")
+local optionRows = Runtime.call("ui.options.rows", function(g, rows)
+  return rows
+end, { save = { options = {} } }, {
+  { id = "battleStyle", label = Strings("BATTLE STYLE") },
+  { id = "textSpeed", label = Strings("TEXT SPEED") },
+})
+T.eq(optionRows[2] and optionRows[2].id, "hardMode",
+  "the HARD MODE row sits right after BATTLE STYLE")
+T.eq(optionRows[2].label, Strings("HARD MODE"), "the row label is clear")
+local optGame = { save = { options = {} }, mods = run.loader }
+run.loader.modOptions.yellow_legacy_changes = { dragonPhysical = true }
+T.eq(optionRows[2].value(optGame), Strings("OFF"), "defaults to OFF")
+run.loader.modOptions.yellow_legacy_changes.hardMode = true
+T.eq(optionRows[2].value(optGame), Strings("ON"), "reads ON when enabled")
+optionRows[2].step(optGame, 1)
+T.eq(run.loader.modOptions.yellow_legacy_changes.hardMode, false,
+  "stepping the row flips it off in the live view")
+T.eq(optGame.save.options.modOptions.yellow_legacy_changes.hardMode, false,
+  "and in the persisted options")
+optionRows[2].step(optGame, -1)
+T.eq(run.loader.modOptions.yellow_legacy_changes.hardMode, true,
+  "stepping again flips it back on")
 
 -- flipping it in the manager applies the switch through the event
 _G.package.loaded["src.core.Game"] = { data = run.data }

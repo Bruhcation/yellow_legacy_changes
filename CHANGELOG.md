@@ -1,12 +1,20 @@
 # Changelog
 
+## [1.10.1] - 2026-08-04
+
+### Changed
+
+- The **HARD MODE** toggle moved from MODS > yellow_legacy_changes to
+  the in-game **OPTIONS** menu: a ON/OFF row right under BATTLE STYLE
+  (persisted in options.lua as before, still flips a run at any time).
+
 ## [1.10.0] - 2026-08-04
 
 ### Added
 
 - **Hard Mode** as an optional challenge: offered with a YES/NO prompt
   in Oak's intro when starting a new game, and toggleable at any time in
-  MODS > yellow_legacy_changes (persisted in options.lua, default OFF).
+  the OPTIONS menu (persisted in options.lua, default OFF).
   Hard Mode enforces:
   - **Forced SET style** — the free-switch prompt after an enemy faint
     never appears (your stored SHIFT/SET preference is restored

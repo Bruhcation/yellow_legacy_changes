@@ -796,16 +796,17 @@ return function(mod)
   mod.options:define({
     { key = "dragonPhysical", type = "toggle", label = "DRAGON PHYS",
       default = false },
-    { key = "hardMode", type = "toggle", label = "HARD MODE",
-      default = false },
   })
 
-  -- Hard Mode as a choice in Oak's intro on a new game, and as the
-  -- HARD MODE toggle in MODS > yellow_legacy_changes.  Both doors write
-  -- the same options.modOptions key the gameplay wraps read, so the two
-  -- agree and the toggle can flip a run at any time.  The write mirrors
-  -- ManagerState:setOption (live loader view + persisted options.lua).
-  local function setHardModeOption(game, on)
+  -- Hard Mode lives in the in-game OPTIONS menu (a HARD MODE row after
+  -- BATTLE STYLE, fed through the ui.options.rows hook) and as a choice
+  -- in Oak's intro on a new game.  Both doors write the same
+  -- options.modOptions key the gameplay wraps read, so they agree and
+  -- the toggle can flip a run at any time.  The write mirrors
+  -- ManagerState:setOption's two tables (live loader view + the save's
+  -- persisted options); persistence is the caller's job so the OPTIONS
+  -- row lets the menu's own writeOptions do it once.
+  local function writeHardModeOption(game, on)
     on = on == true
     local loader = game and game.mods
     if loader then
@@ -818,9 +819,32 @@ return function(mod)
       save.options.modOptions = save.options.modOptions or {}
       save.options.modOptions[mod.id] = save.options.modOptions[mod.id] or {}
       save.options.modOptions[mod.id].hardMode = on
-      if game.writeOptions then game:writeOptions() end
     end
   end
+
+  local function hardModeOn()
+    return mod.options:get("hardMode") == true
+  end
+
+  -- the OPTIONS-menu row: ON/OFF toggle anchored after BATTLE STYLE.
+  -- step() returns true so OptionsMenu persists the flip, and reads
+  -- mod.options:get so the value always matches what the gameplay wraps
+  -- enforce.
+  local Strings = require("src.core.Strings")
+  mod.hooks:wrap("ui.options.rows", function(next, game, rows)
+    rows = next(game, rows)
+    mod.ui.insertAfter(rows, Strings("BATTLE STYLE"), {
+      id = "hardMode", label = Strings("HARD MODE"),
+      value = function(g)
+        return hardModeOn() and Strings("ON") or Strings("OFF")
+      end,
+      step = function(g)
+        writeHardModeOption(g, not hardModeOn())
+        return true
+      end,
+    })
+    return rows
+  end)
 
   mod.hooks:wrap("intro.oak_speech.build", function(next, steps, speech)
     steps = next(steps, speech)
@@ -834,7 +858,9 @@ return function(mod)
 
   mod.events:on("intro.oak_speech.answered", function(ev)
     if ev and ev.saveKey == "hard_mode_choice" then
-      setHardModeOption(ev.speech and ev.speech.game, ev.value)
+      local game = ev.speech and ev.speech.game
+      writeHardModeOption(game, ev.value)
+      if game and game.writeOptions then game:writeOptions() end
     end
   end)
 

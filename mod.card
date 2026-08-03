@@ -12,14 +12,14 @@ return {
       "FOCUS ENERGY functional at exactly 2x crit rate; LEECH SEED drains a flat 1/8",
       "GHOST attacks use the Special stat; Ghost is now super effective against Psychic (fixes the Gen 1 chart bug)",
       "a MODS-menu toggle (DRAGON PHYS) switches DRAGON moves to the physical stat, persisted in options.lua",
-      "optional HARD MODE: forced SET style, no items in battle (Poké Balls excepted), level caps by gym badge (12/21/24/35/43/50/53/55, none after the 8th badge); offered on new game and toggleable in the MODS menu",
+      "optional HARD MODE: forced SET style, no items in battle (Poké Balls excepted), level caps by gym badge (12/21/24/35/43/50/53/55, none after the 8th badge); offered on new game and toggleable in the OPTIONS menu",
       "27 species base stats rebalanced per pages 15-19",
       "learnsets for all 151 species, TM/HM lists for 146, encounter tables for 57 maps (Data.xlsx)",
       "44 trainer classes rebalanced (routes, Rocket, Rival, Gym Leaders, Elite Four, Champion) per the disassembly's data/trainers/parties.asm",
     },
     added = {
       "DRAGON PHYS toggle in the mod's own MODS-menu options (default OFF = Gen 1 faithful)",
-      "HARD MODE toggle in the MODS menu plus a YES/NO prompt in Oak's intro on a new game (default OFF)",
+      "HARD MODE toggle in the OPTIONS menu plus a YES/NO prompt in Oak's intro on a new game (default OFF)",
       "Crystal Tear post-game quest: Oak gifts the key item after the Hall of Fame with 150 species caught, and using it in Cerulean Cave B1F after Mewtwo reveals a level-75 Mew with a strong moveset",
     },
     known = {
