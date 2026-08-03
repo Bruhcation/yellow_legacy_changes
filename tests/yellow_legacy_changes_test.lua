@@ -707,14 +707,18 @@ T.eq(mergedTypes.DRAGON.category, "physical", "DRAGON is physical when ON")
 exports.setDragonPhysical(run.data, false)
 T.eq(mergedTypes.DRAGON.category, "special", "DRAGON returns to special when OFF")
 
--- the mod declares a toggle row in the MODS menu options schema
+-- the mod declares toggle rows in the MODS menu options schema
 local schema = run.loader.optionSchemas.yellow_legacy_changes
-T.check(type(schema) == "table" and #schema == 1,
-  "the mod defines one options row")
-T.eq(schema[1].key, "dragonPhysical", "the row is the dragon toggle")
+T.check(type(schema) == "table" and #schema == 2,
+  "the mod defines two options rows")
+T.eq(schema[1].key, "dragonPhysical", "the first row is the dragon toggle")
 T.eq(schema[1].type, "toggle", "the row is a toggle")
 T.eq(schema[1].label, "DRAGON PHYS", "the row label is clear")
 T.eq(schema[1].default, false, "defaults to OFF (Gen 1 faithful)")
+T.eq(schema[2].key, "hardMode", "the second row is the hard mode toggle")
+T.eq(schema[2].type, "toggle", "the row is a toggle")
+T.eq(schema[2].label, "HARD MODE", "the row label is clear")
+T.eq(schema[2].default, false, "defaults to OFF (normal rules)")
 
 -- flipping it in the manager applies the switch through the event
 _G.package.loaded["src.core.Game"] = { data = run.data }
@@ -734,6 +738,162 @@ Runtime.emit("game.ready", { game = { save = { options = {} } } })
 T.eq(mergedTypes.DRAGON.category, "physical",
   "a persisted ON applies at game.ready")
 _G.package.loaded["src.core.Game"] = nil
+
+-- ---------- Hard Mode (pure rules + hooks) ----------
+
+local hm = exports.hardMode
+T.check(type(hm) == "table", "hardMode helpers are exported")
+
+-- the badge -> cap table, verbatim from the design
+local CAPS = { 12, 21, 24, 35, 43, 50, 53, 55 }
+for i, cap in ipairs(CAPS) do
+  T.eq(hm.capLevelFor(i - 1), cap,
+    ("badge %d caps at level %d"):format(i - 1, cap))
+end
+T.check(hm.capLevelFor(8) == nil, "eight badges: no cap")
+T.check(hm.capLevelFor(9) == nil, "more badges still mean no cap")
+T.check(hm.capLevelFor(nil) == nil, "a missing badge count caps nothing")
+
+-- the exp a mon may hold at the cap follows its own growth curve
+local Growth = require("src.pokemon.Growth")
+local hmDef = run.data.pokemon["FIXMON_LEGACY"]
+local hmMon = { species = "FIXMON_LEGACY", exp = 0 }
+local expected12 = Growth.expForLevel(hmDef.growthRate, 12,
+  run.data.growth_rates)
+T.eq(hm.capExpFor(run.data, hmMon, 0), expected12,
+  "cap exp for 0 badges is the level-12 exp")
+T.check(hm.capExpFor(run.data, hmMon, 8) == nil,
+  "cap exp is nil past the eighth badge")
+T.check(hm.capExpFor(nil, hmMon, 0) == nil,
+  "no data means no cap computation")
+
+-- clampExpGain: pass-through uncapped, trimmed at the cap, zero at it
+T.eq(hm.clampExpGain(run.data, hmMon, 8, 5000), 5000,
+  "uncapped gain passes through")
+T.eq(hm.clampExpGain(run.data, hmMon, 0, 5000), expected12,
+  "a huge gain is trimmed to the cap exp")
+T.eq(hm.clampExpGain(run.data, hmMon, 0, 3), 3,
+  "a gain below the cap is untouched")
+T.eq(hm.clampExpGain(run.data, { species = "FIXMON_LEGACY", exp = expected12 },
+  0, 100), 0, "a mon already at the cap gains nothing")
+T.eq(hm.clampExpGain(run.data,
+  { species = "FIXMON_LEGACY", exp = expected12 + 50 }, 1, 100),
+  math.min(100, Growth.expForLevel(hmDef.growthRate, 21,
+    run.data.growth_rates) - expected12 - 50),
+  "a mon past the cap waits for the next badge")
+
+-- RARE CANDY gate (it sets exp by level, bypassing the exp hook)
+T.eq(hm.blocksRareCandy(run.data, { species = "FIXMON_LEGACY", level = 12 }, 0),
+  true, "candy is blocked at the cap level")
+T.eq(hm.blocksRareCandy(run.data, { species = "FIXMON_LEGACY", level = 11 }, 0),
+  false, "candy works below the cap")
+T.eq(hm.blocksRareCandy(run.data, { species = "FIXMON_LEGACY", level = 21 }, 1),
+  true, "badge 1 blocks at 21")
+T.eq(hm.blocksRareCandy(run.data, { species = "FIXMON_LEGACY", level = 55 }, 7),
+  true, "badge 7 blocks at 55")
+T.eq(hm.blocksRareCandy(run.data, { species = "FIXMON_LEGACY", level = 99 }, 8),
+  false, "eight badges lift the gate entirely")
+
+-- the new-game prompt: a yes/no step after Oak's last speech
+local oakSteps = Runtime.call("intro.oak_speech.build",
+  function(s) return s end,
+  { { id = "legend" } }, {})
+T.eq(oakSteps[2] and oakSteps[2].id, "hard_mode_choice",
+  "the hard mode prompt sits after the legend step")
+T.eq(oakSteps[2].kind, "yesno", "it is a yes/no choice")
+T.eq(oakSteps[2].saveKey, "hard_mode_choice", "the answer is keyed")
+
+-- answering the prompt writes the same option the MODS toggle reads
+local oakGame = {
+  mods = run.loader,
+  save = { options = {} },
+  writeOptions = function() end,
+}
+run.loader.events:emit("intro.oak_speech.answered",
+  { saveKey = "hard_mode_choice", value = true, speech = { game = oakGame } })
+T.eq(run.loader.modOptions.yellow_legacy_changes.hardMode, true,
+  "a YES answer flips hard mode on")
+T.eq(oakGame.save.options.modOptions.yellow_legacy_changes.hardMode, true,
+  "the persisted options carry the choice")
+run.loader.events:emit("intro.oak_speech.answered",
+  { saveKey = "hard_mode_choice", value = false, speech = { game = oakGame } })
+T.eq(run.loader.modOptions.yellow_legacy_changes.hardMode, false,
+  "a NO answer flips it back off")
+run.loader.events:emit("intro.oak_speech.answered",
+  { saveKey = "some_other_key", value = true, speech = { game = oakGame } })
+T.eq(run.loader.modOptions.yellow_legacy_changes.hardMode, false,
+  "other answers never touch the option")
+
+-- the exp.gain hook enforces the cap against the active save's badges
+local hardGame = { data = run.data, save = { inventory = {}, options = {} } }
+Runtime.emit("game.ready", { game = hardGame })
+run.loader.modOptions.yellow_legacy_changes.hardMode = true
+local capCtx = {
+  defeatedDef = {}, level = 6, isTrainer = false,
+  participants = 1, traded = false,
+  mon = { species = "FIXMON_LEGACY", exp = 0 },
+}
+T.eq(Runtime.call("exp.gain", function() return 99999 end, capCtx),
+  expected12, "0 badges: exp gain capped at level 12")
+capCtx.mon.exp = expected12
+T.eq(Runtime.call("exp.gain", function() return 100 end, capCtx), 0,
+  "0 badges: already at the cap gains nothing")
+capCtx.mon.exp = 0
+hardGame.save.inventory.FIX_BADGE_1 = true
+T.eq(Runtime.call("exp.gain", function() return 99999 end, capCtx),
+  Growth.expForLevel(hmDef.growthRate, 21, run.data.growth_rates),
+  "1 badge: exp gain capped at level 21")
+hardGame.save.inventory.FIX_BADGE_1 = nil
+run.loader.modOptions.yellow_legacy_changes.hardMode = false
+T.eq(Runtime.call("exp.gain", function() return 99999 end, capCtx), 99999,
+  "hard mode off: the gain passes through untouched")
+
+-- the item gate: nothing usable in battle but balls; candy capped
+local ItemEffects = require("src.inventory.ItemEffects")
+local Strings = require("src.core.Strings")
+run.loader.modOptions.yellow_legacy_changes.hardMode = true
+local blocked, blockedMsgs = ItemEffects.use(run.data, hardGame.save,
+  "POTION", nil, true)
+T.eq(blocked, "failed", "hard mode refuses a battle item")
+T.eq(blockedMsgs and blockedMsgs[1], Strings("Items can't be\nused in battle!"),
+  "with the hard-mode refusal line")
+local ball = ItemEffects.use(run.data, hardGame.save, "POKE_BALL", nil, true)
+T.eq(ball, "ball", "Poké Balls still throw in battle")
+local candy = ItemEffects.use(run.data, hardGame.save, "RARE_CANDY",
+  { species = "FIXMON_LEGACY", level = 12 }, nil)
+T.eq(candy, "failed", "RARE CANDY is refused at the cap on the field")
+local candyOk = ItemEffects.use(run.data, hardGame.save, "RARE_CANDY",
+  { species = "FIXMON_LEGACY", level = 11, dvs = {},
+    stats = { hp = 100 }, hp = 100 }, nil)
+T.eq(candyOk, "consumed", "RARE CANDY works below the cap")
+run.loader.modOptions.yellow_legacy_changes.hardMode = false
+local potion = ItemEffects.use(run.data, hardGame.save, "POTION", nil, true)
+T.eq(potion, "failed", "off: a full-HP potion still fails the vanilla way")
+
+-- the Set-style wrap forces the battle-style read only while the
+-- enemy's next mon is being sent out, then restores the preference
+local BattleState = require("src.battle.BattleState")
+local styleSave = { options = { battleStyle = "shift" } }
+run.loader.modOptions.yellow_legacy_changes.hardMode = true
+-- re-run game.ready with a stub vanilla in place so the wrap captures it
+local sawSet = false
+BattleState.enemyMonFainted = function(self)
+  sawSet = self.game.save.options.battleStyle == "set"
+end
+Runtime.emit("game.ready",
+  { game = { data = run.data, save = { options = {} }, mods = run.loader } })
+local ok = pcall(BattleState.enemyMonFainted, { game = {
+  data = run.data, save = styleSave, mods = run.loader } })
+T.check(ok, "the Set-style wrap runs the underlying send-out")
+T.check(sawSet, "the battle-style read is forced to SET during the send-out")
+T.eq(styleSave.options.battleStyle, "shift",
+  "the player's stored battle style is restored afterwards")
+-- hard mode off: the same pass leaves the style read as-is
+sawSet = false
+run.loader.modOptions.yellow_legacy_changes.hardMode = false
+pcall(BattleState.enemyMonFainted, { game = {
+  data = run.data, save = styleSave, mods = run.loader } })
+T.check(not sawSet, "off: the read keeps the stored style (SHIFT offers stay)")
 
 -- ---------- evolutions (yellow legacy evos_moves.asm) ----------
 -- vanilla trade rows become level rows at the hack's levels

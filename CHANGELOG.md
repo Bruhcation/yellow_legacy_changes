@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.10.0] - 2026-08-04
+
+### Added
+
+- **Hard Mode** as an optional challenge: offered with a YES/NO prompt
+  in Oak's intro when starting a new game, and toggleable at any time in
+  MODS > yellow_legacy_changes (persisted in options.lua, default OFF).
+  Hard Mode enforces:
+  - **Forced SET style** — the free-switch prompt after an enemy faint
+    never appears (your stored SHIFT/SET preference is restored
+    untouched after each battle).
+  - **No items in battle** — every battle use is refused with
+    "Items can't be used in battle!" and spends no turn or item.  Poké
+    Balls are exempt, so catching still works; enemy trainers keep their
+    items.
+  - **Level caps by gym badge** — 0 badges: 12, 1: 21, 2: 24, 3: 35,
+    4: 43, 5: 50, 6: 53, 7: 55.  At the cap a mon gains no exp (stat exp
+    still accrues like a max-level mon) and RARE CANDY is refused; gain
+    resumes the moment the next badge lifts the cap.  After the 8th
+    badge there is no cap at all.
+
 ## [1.9.3] - 2026-08-03
 
 ### Fixed

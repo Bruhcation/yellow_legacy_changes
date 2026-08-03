@@ -523,6 +523,26 @@ return function(mod)
 
   applyLegacyTables(mod)
 
+  -- ---- Hard Mode rules (hardmode.lua) ----
+  -- Pure helpers: forced SET style, no items in battle (balls aside) and
+  -- badge-gated level caps.  The gameplay wraps live below; the pure
+  -- table is also what the headless test drives.
+  local HardMode = {}
+  do
+    local source = mod:read("hardmode.lua")
+    if not source then
+      mod.log:error("hardmode.lua missing from %s -- reinstall the mod",
+        mod.path)
+    else
+      local chunk, compileErr = load(source,
+        "@" .. mod.path .. "/hardmode.lua")
+      if chunk then
+        local ok, loaded = pcall(chunk)
+        if ok and type(loaded) == "table" then HardMode = loaded end
+      end
+    end
+  end
+
   -- ---- Crystal Tear post-game quest (crystal_tear.lua) ----
   local CrystalTear = {}
   do
@@ -555,6 +575,51 @@ return function(mod)
   -- Mew's level-up set so the level-75 wild Mew carries a strong moveset
   -- (PSYCHIC / MEGA_PUNCH / AMNESIA / SOFTBOILED at 75)
   mod.content.pokemon:patch("MEW", { learnset = CrystalTear.mewLearnset() })
+
+  mod.events:on("game.ready", function(ev)
+    local Strings = require("src.core.Strings")
+    local Badges = require("src.inventory.Badges")
+
+    -- ---- Hard Mode: forced SET battle style ----
+    -- The free-switch prompt reads save.options.battleStyle at the moment
+    -- the enemy's next mon is sent out (EnemySendOutFirstMon), so the
+    -- wrap forces the read to "set" for the duration of that method only
+    -- -- the player's stored preference is restored untouched afterwards.
+    local BattleState = require("src.battle.BattleState")
+    local vanillaEnemyMonFainted = BattleState.enemyMonFainted
+    BattleState.enemyMonFainted = function(self)
+      local opts = self.game and self.game.save and self.game.save.options
+      local prev = opts and opts.battleStyle
+      local forced = prev ~= "set" and mod.options:get("hardMode") == true
+      if forced then opts.battleStyle = "set" end
+      local ok, err = pcall(vanillaEnemyMonFainted, self)
+      if forced then opts.battleStyle = prev end
+      if not ok then error(err, 0) end
+    end
+
+    -- ---- Hard Mode: no items in battle (Poké Balls excepted) ----
+    -- Every battle use routes through ItemEffects.use (BagMenu keeps the
+    -- ball result and calls BattleState:throwBall itself), so the wrap
+    -- covers healers, X items, POKé DOLL, flutes and machines alike.
+    -- A "failed" result keeps the item, leaves the bag open and spends
+    -- no turn.  RARE CANDY sets exp by level directly (bypassing the
+    -- exp hook below), so it gets its own field-use gate at the cap.
+    local ItemEffects = require("src.inventory.ItemEffects")
+    local vanillaItemUse = ItemEffects.use
+    ItemEffects.use = function(data, save, itemId, target, battle, moveIndex, ow)
+      if mod.options:get("hardMode") == true then
+        if battle and not ItemEffects.isBall(itemId) then
+          return "failed", { Strings("Items can't be\nused in battle!") }
+        end
+        if itemId == "RARE_CANDY"
+           and HardMode.blocksRareCandy(data, target,
+                                        Badges.count(data, save)) then
+          return "failed", { Strings("It won't have\nany effect.") }
+        end
+      end
+      return vanillaItemUse(data, save, itemId, target, battle, moveIndex, ow)
+    end
+  end)
 
   mod.events:on("game.ready", function()
     local Strings = require("src.core.Strings")
@@ -731,7 +796,47 @@ return function(mod)
   mod.options:define({
     { key = "dragonPhysical", type = "toggle", label = "DRAGON PHYS",
       default = false },
+    { key = "hardMode", type = "toggle", label = "HARD MODE",
+      default = false },
   })
+
+  -- Hard Mode as a choice in Oak's intro on a new game, and as the
+  -- HARD MODE toggle in MODS > yellow_legacy_changes.  Both doors write
+  -- the same options.modOptions key the gameplay wraps read, so the two
+  -- agree and the toggle can flip a run at any time.  The write mirrors
+  -- ManagerState:setOption (live loader view + persisted options.lua).
+  local function setHardModeOption(game, on)
+    on = on == true
+    local loader = game and game.mods
+    if loader then
+      loader.modOptions = loader.modOptions or {}
+      loader.modOptions[mod.id] = loader.modOptions[mod.id] or {}
+      loader.modOptions[mod.id].hardMode = on
+    end
+    local save = game and game.save
+    if save and save.options then
+      save.options.modOptions = save.options.modOptions or {}
+      save.options.modOptions[mod.id] = save.options.modOptions[mod.id] or {}
+      save.options.modOptions[mod.id].hardMode = on
+      if game.writeOptions then game:writeOptions() end
+    end
+  end
+
+  mod.hooks:wrap("intro.oak_speech.build", function(next, steps, speech)
+    steps = next(steps, speech)
+    mod.ui.insertStepAfter(steps, "legend", {
+      id = "hard_mode_choice", kind = "yesno", pic = "oak",
+      saveKey = "hard_mode_choice", defaultNo = true,
+      text = "Play HARD MODE?\nNo items in battle,\nSET style, and level\ncaps per gym badge.",
+    })
+    return steps
+  end)
+
+  mod.events:on("intro.oak_speech.answered", function(ev)
+    if ev and ev.saveKey == "hard_mode_choice" then
+      setHardModeOption(ev.speech and ev.speech.game, ev.value)
+    end
+  end)
 
   local function applyDragonOption()
     local ok, Game = pcall(require, "src.core.Game")
@@ -781,6 +886,25 @@ return function(mod)
     return next(oppClass, partyIndex, partyDef)
   end)
 
+  -- ---- Hard Mode: level caps by gym badge ----
+  -- The engine's exp.gain hook sees every gain the battle awards (EXP.ALL
+  -- runs it per party member too), so the cap is enforced before exp is
+  -- ever written: at the cap no gain lands at all, otherwise the gain is
+  -- trimmed so a level-up can never cross the cap.  Gaining resumes the
+  -- moment the next badge lifts the cap; badges are read live from the
+  -- active save, so the toggle works mid-run (a run toggled ON with mons
+  -- already past the cap just earns nothing until the cap catches up).
+  mod.hooks:wrap("exp.gain", function(next, ctx)
+    local gained = next(ctx)
+    local g = activeGame
+    if g and ctx and ctx.mon and mod.options:get("hardMode") == true then
+      local Badges = require("src.inventory.Badges")
+      local count = Badges.count(g.data, g.save)
+      gained = HardMode.clampExpGain(g.data, ctx.mon, count, gained)
+    end
+    return gained
+  end)
+
   mod.exports = {
     applyTables = applyTables,
     resolveTables = resolveTables,
@@ -789,5 +913,6 @@ return function(mod)
     rivalPatchEnabled = rivalPatchEnabled,
     rivalVariantFor = rivalVariantFor,
     crystalTear = CrystalTear,
+    hardMode = HardMode,
   }
 end

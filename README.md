@@ -9,6 +9,28 @@ Twineedle 40x2...). Ghost attacks now use the Special stat and are
 super effective against Psychic; the **DRAGON PHYS** toggle in MODS > yellow_legacy_changes flips Dragon
 moves to the physical stat (persisted, default OFF).
 
+## Hard Mode
+
+An optional challenge with three rules: **forced SET style** (no free
+switch after an enemy faint), **no items in battle** (Poké Balls
+excepted — catching still works; enemy trainers keep their items), and
+**level caps by gym badge**.  Oak asks "Play HARD MODE?" when you start
+a new game, and the **HARD MODE** toggle in MODS > yellow_legacy_changes
+flips a run at any time (persisted, default OFF).
+
+| Badges | Level cap | Badges | Level cap |
+|---|---|---|---|
+| 0 | 12 | 4 | 43 |
+| 1 | 21 | 5 | 50 |
+| 2 | 24 | 6 | 53 |
+| 3 | 35 | 7 | 55 |
+
+At the cap a Pokémon gains no experience (stat exp still accrues, like
+at level 100) and RARE CANDY is refused; gaining resumes the moment the
+next badge lifts the cap.  After the **8th badge there is no cap**.
+Mons already past the cap when Hard Mode is switched on just earn
+nothing until the cap catches up — nothing is rolled back.
+
 ## Crystal Tear quest (post-game)
 
 After beating the Hall of Fame with all 150 obtainable species caught
