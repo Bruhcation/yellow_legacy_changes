@@ -31,24 +31,33 @@ local rivalPatchEnabled = false
 -- resolved rival early-battle route variants (see trainers.lua
 -- rivalVariants); read by the trainer.party hook below
 local resolvedVariants = nil
+-- load one sibling file (learnsets/trainers/rematches/hardmode/crystal_tear)
+-- into a table; logs and returns nil on any failure so callers fall back
+-- safely.  The data files return their tables directly.
+local function loadSibling(mod, name)
+  local source = mod:read(name)
+  if not source then
+    mod.log:error("%s missing from %s -- reinstall the mod", name, mod.path)
+    return nil
+  end
+  local chunk, compileErr = load(source, "@" .. mod.path .. "/" .. name)
+  if not chunk then
+    mod.log:error("%s did not compile: %s", name, tostring(compileErr))
+    return nil
+  end
+  local ok, data = pcall(chunk)
+  if not ok then
+    mod.log:error("%s failed to load: %s", name, tostring(data))
+    return nil
+  end
+  return data
+end
+
 local function applyLegacyTables(mod)
   local merged = {}
   for _, name in ipairs({ "learnsets.lua", "trainers.lua", "rematches.lua" }) do
-    local source = mod:read(name)
-    if not source then
-      mod.log:error("%s missing from %s -- reinstall the mod", name, mod.path)
-      return
-    end
-    local chunk, compileErr = load(source, "@" .. mod.path .. "/" .. name)
-    if not chunk then
-      mod.log:error("%s did not compile: %s", name, tostring(compileErr))
-      return
-    end
-    local ok, data = pcall(chunk)
-    if not ok then
-      mod.log:error("%s failed to load: %s", name, tostring(data))
-      return
-    end
+    local data = loadSibling(mod, name)
+    if data == nil then return end
     for k, v in pairs(data) do merged[k] = v end
   end
   local resolved = applyTables(mod, merged)
@@ -66,14 +75,12 @@ resolveTables = function(content, data)
   for id, rec in content.moves:each() do
     if rec and rec.name then moveId[norm(rec.name)] = id end
   end
-  for id, rec in content.pokemon:each() do
-    if rec and rec.name then speciesId[norm(rec.name)] = id end
-  end
-  -- trainer parties name species by ROM constant ("NIDORAN_M"), which
-  -- matches the registry's ids, not the display names -- resolve against
-  -- the ids themselves
   local constId = {}
   for id, rec in content.pokemon:each() do
+    if rec and rec.name then speciesId[norm(rec.name)] = id end
+    -- trainer parties name species by ROM constant ("NIDORAN_M"), which
+    -- matches the registry's ids, not the display names -- resolve against
+    -- the ids themselves
     if rec then constId[norm(id)] = id end
   end
 
@@ -529,35 +536,15 @@ return function(mod)
   -- table is also what the headless test drives.
   local HardMode = {}
   do
-    local source = mod:read("hardmode.lua")
-    if not source then
-      mod.log:error("hardmode.lua missing from %s -- reinstall the mod",
-        mod.path)
-    else
-      local chunk, compileErr = load(source,
-        "@" .. mod.path .. "/hardmode.lua")
-      if chunk then
-        local ok, loaded = pcall(chunk)
-        if ok and type(loaded) == "table" then HardMode = loaded end
-      end
-    end
+    local loaded = loadSibling(mod, "hardmode.lua")
+    if type(loaded) == "table" then HardMode = loaded end
   end
 
   -- ---- Crystal Tear post-game quest (crystal_tear.lua) ----
   local CrystalTear = {}
   do
-    local source = mod:read("crystal_tear.lua")
-    if not source then
-      mod.log:error("crystal_tear.lua missing from %s -- reinstall the mod",
-        mod.path)
-    else
-      local chunk, compileErr = load(source,
-        "@" .. mod.path .. "/crystal_tear.lua")
-      if chunk then
-        local ok, loaded = pcall(chunk)
-        if ok and type(loaded) == "table" then CrystalTear = loaded end
-      end
-    end
+    local loaded = loadSibling(mod, "crystal_tear.lua")
+    if type(loaded) == "table" then CrystalTear = loaded end
   end
 
   -- the key item Oak hands over once the Hall of Fame run is complete
@@ -590,7 +577,10 @@ return function(mod)
     BattleState.enemyMonFainted = function(self)
       local opts = self.game and self.game.save and self.game.save.options
       local prev = opts and opts.battleStyle
-      local forced = prev ~= "set" and mod.options:get("hardMode") == true
+      -- no options table (stub/broken save): fall through, never force a
+      -- style we cannot restore afterwards
+      local forced = opts ~= nil and prev ~= "set"
+        and mod.options:get("hardMode") == true
       if forced then opts.battleStyle = "set" end
       local ok, err = pcall(vanillaEnemyMonFainted, self)
       if forced then opts.battleStyle = prev end
@@ -864,16 +854,23 @@ return function(mod)
     end
   end)
 
-  local function applyDragonOption()
+  -- the merged live data the DRAGON PHYS switch writes to: the type_chart
+  -- registry rebuilds Data.type_chart.types from its own live records, so
+  -- mutating the merged record applies instantly (TypeChart.category reads
+  -- it on every call)
+  local function gameData()
     local ok, Game = pcall(require, "src.core.Game")
-    local data = ok and Game and Game.data
+    return ok and Game and Game.data or nil
+  end
+
+  local function applyDragonOption()
+    local data = gameData()
     if data then setDragonPhysical(data, mod.options:get("dragonPhysical")) end
   end
 
   mod.events:on("mod.options_changed", function(ev)
     if ev and ev.mod == mod.id and ev.key == "dragonPhysical" then
-      local ok, Game = pcall(require, "src.core.Game")
-      local data = ok and Game and Game.data
+      local data = gameData()
       if data then setDragonPhysical(data, ev.value == true) end
     end
   end)
