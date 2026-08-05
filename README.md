@@ -6,7 +6,8 @@ Applies the **move changes** and **stat changes**
 Try it: enable the mod, then check a rebalanced mon's stats in the
 Pokédex, or fight with a buffed move (Solar Beam 180, Explosion 250,
 Twineedle 40x2...). Ghost attacks now use the Special stat and are
-super effective against Psychic; the **DRAGON PHYS** toggle in MODS > yellow_legacy_changes flips Dragon
+super effective against Psychic, and Bug attacks are no longer super
+effective against Poison; the **DRAGON PHYS** toggle in MODS > yellow_legacy_changes flips Dragon
 moves to the physical stat (persisted, default OFF).
 
 ## Hard Mode
@@ -181,8 +182,9 @@ data.
 ## Notes
 
 - Trade evolutions become level evolutions, like the hack: Kadabra at 42,
-  Machoke at 38, Graveler at 38, Haunter at 42.  Poliwhirl also evolves
-  into Poliwrath at 18 instead of 25.
+  Machoke at 38, Graveler at 38, Haunter at 42.  The Poliwag line keeps its
+  vanilla shape: Poliwag to Poliwhirl at level 18, Poliwhirl to Poliwrath
+  with a Water Stone.
 - The rival teams are patched **only on Yellow**.  On Red or Blue the
   rival keeps the normal counter-pick starter teams (the engine picks the
   party from your starter choice), so no Eevee and no Yellow Legacy rival

@@ -32,6 +32,10 @@ for _, mv in ipairs({
 }) do
   Data.moves[mv.id] = mv
 end
+-- the Poliwhirl Water Stone evolution needs the item record to resolve
+Data.items.WATER_STONE = {
+  id = "WATER_STONE", name = "WATER STONE", price = 2100,
+}
 Data.pokemon.PIKACHU = {
   id = "PIKACHU", name = "PIKACHU", index = 25, dex = 25,
   baseStats = { hp = 35, attack = 55, defense = 30, speed = 90, special = 50 },
@@ -99,7 +103,7 @@ for _, id in ipairs({
   "DRAGONITE", "AERODACTYL", "ONIX", "KANGASKHAN", "MAROWAK", "KINGLER",
   "MACHOKE", "GOLEM", "MAGNETON", "DODRIO", "SANDSLASH", "CLOYSTER",
   "FLAREON", "MACHAMP", "PIDGEOT", "VAPOREON",
-  "GRAVELER", "HAUNTER", "GENGAR", "POLIWHIRL", "POLIWRATH",
+  "GRAVELER", "HAUNTER", "GENGAR", "POLIWAG", "POLIWHIRL", "POLIWRATH",
   "SEADRA", "GOLDUCK", "LAPRAS", "BLASTOISE",
   "OMASTAR", "KABUTOPS", "GEODUDE",
   "EEVEE", "SPEAROW", "RATTATA", "BELLSPROUT",
@@ -133,7 +137,8 @@ seedEvo("KADABRA", { { method = "TRADE", level = 1, species = "ALAKAZAM" } })
 seedEvo("MACHOKE", { { method = "TRADE", level = 1, species = "MACHAMP" } })
 seedEvo("GRAVELER", { { method = "TRADE", level = 1, species = "GOLEM" } })
 seedEvo("HAUNTER", { { method = "TRADE", level = 1, species = "GENGAR" } })
-seedEvo("POLIWHIRL", { { method = "LEVEL", level = 25, species = "POLIWRATH" } })
+seedEvo("POLIWAG", { { method = "LEVEL", level = 18, species = "POLIWHIRL" } })
+seedEvo("POLIWHIRL", { { method = "ITEM", item = "WATER_STONE", species = "POLIWRATH" } })
 
 local run = T.sdk.loadMod("mods/yellow_legacy_changes", { data = Data })
 T.eq(#run.errors, 0, "loads clean (" .. tostring(run.errors[1]) .. ")")
@@ -595,6 +600,8 @@ T.eq(typeChart:get("GHOST").category, "special",
   "GHOST moves use the special stat (Yellow Legacy)")
 T.eq(typeChart:get("GHOST>PSYCHIC_TYPE").multiplier, 20,
   "GHOST is super effective against PSYCHIC")
+T.eq(typeChart:get("BUG>POISON").multiplier, 10,
+  "BUG is neutral against POISON (Gen 1 bug removed)")
 
 local mergedTypes = run.data.type_chart and run.data.type_chart.types
 T.check(mergedTypes ~= nil and mergedTypes.GHOST ~= nil,
@@ -937,8 +944,11 @@ T.eq(evoOf("GRAVELER").species, "GOLEM", "GRAVELER evolves into GOLEM")
 T.eq(evoOf("HAUNTER").method, "LEVEL", "HAUNTER -> GENGAR by level")
 T.eq(evoOf("HAUNTER").level, 42, "HAUNTER evolves at 42")
 T.eq(evoOf("HAUNTER").species, "GENGAR", "HAUNTER evolves into GENGAR")
-T.eq(evoOf("POLIWHIRL").method, "LEVEL", "POLIWHIRL stays a level evolution")
-T.eq(evoOf("POLIWHIRL").level, 18, "POLIWHIRL evolves at 18 (was 25)")
+T.eq(evoOf("POLIWAG").method, "LEVEL", "POLIWAG -> POLIWHIRL by level")
+T.eq(evoOf("POLIWAG").level, 18, "POLIWAG evolves at 18")
+T.eq(evoOf("POLIWAG").species, "POLIWHIRL", "POLIWAG evolves into POLIWHIRL")
+T.eq(evoOf("POLIWHIRL").method, "ITEM", "POLIWHIRL -> POLIWRATH by Water Stone")
+T.eq(evoOf("POLIWHIRL").item, "WATER_STONE", "POLIWHIRL uses the Water Stone")
 T.eq(evoOf("POLIWHIRL").species, "POLIWRATH", "POLIWHIRL evolves into POLIWRATH")
 
 -- ---------- on Yellow the rival patches and rematch team apply ----------
@@ -961,6 +971,9 @@ for _, mv in ipairs({
 }) do
   fresh.moves[mv.id] = mv
 end
+fresh.items.WATER_STONE = {
+  id = "WATER_STONE", name = "WATER STONE", price = 2100,
+}
 local function seedYellowSpecies(id)
   fresh.pokemon[id] = {
     id = id, name = id, index = 1, dex = 1,

@@ -506,27 +506,32 @@ return function(mod)
   end
 
   -- Yellow Legacy evolution changes (data/pokemon/evos_moves.asm): the
-  -- four trade evolutions become level evolutions, and Poliwhirl's
-  -- Poliwrath evolution comes earlier.  Each of these species has exactly
-  -- one evolution row, so the whole field is replaced.
+  -- four trade evolutions become level evolutions, while the Poliwag line
+  -- keeps its vanilla Gen 1 shape (Poliwag -> Poliwhirl at level 18,
+  -- Poliwhirl -> Poliwrath by Water Stone).  Each of these species has
+  -- exactly one evolution row, so the whole field is replaced.
   local EVOS = {
     KADABRA = { evolutions = { { method = "LEVEL", level = 42, species = "ALAKAZAM" } } },
     MACHOKE = { evolutions = { { method = "LEVEL", level = 38, species = "MACHAMP" } } },
     GRAVELER = { evolutions = { { method = "LEVEL", level = 38, species = "GOLEM" } } },
     HAUNTER = { evolutions = { { method = "LEVEL", level = 42, species = "GENGAR" } } },
-    POLIWHIRL = { evolutions = { { method = "LEVEL", level = 18, species = "POLIWRATH" } } },
+    POLIWAG = { evolutions = { { method = "LEVEL", level = 18, species = "POLIWHIRL" } } },
+    POLIWHIRL = { evolutions = { { method = "ITEM", item = "WATER_STONE", species = "POLIWRATH" } } },
   }
   for id, patch in pairs(EVOS) do
     mod.content.pokemon:patch(id, patch)
   end
 
-  -- Yellow Legacy type changes: GHOST attacks become special, and the
-  -- Gen 1 chart bug that made Psychic immune to Ghost is fixed (Ghost is
-  -- now super effective against Psychic).  Patch, not override: the type
-  -- records and chart rows come from the engine's own registrations, and
-  -- a total conversion that replaced them wins over this op.
+  -- Yellow Legacy type changes: GHOST attacks become special, the Gen 1
+  -- chart bug that made Psychic immune to Ghost is fixed (Ghost is now
+  -- super effective against Psychic), and the Gen 1 bug that made Bug
+  -- super effective against Poison is removed (Bug is now neutral to
+  -- Poison).  Patch, not override: the type records and chart rows come
+  -- from the engine's own registrations, and a total conversion that
+  -- replaced them wins over this op.
   mod.content.type_chart:patch("GHOST", { category = "special" })
   mod.content.type_chart:patch("GHOST>PSYCHIC_TYPE", { multiplier = 20 })
+  mod.content.type_chart:patch("BUG>POISON", { multiplier = 10 })
 
   applyLegacyTables(mod)
 

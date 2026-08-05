@@ -10,7 +10,7 @@ return {
       "type changes: GUST Flying, CUT Bug, EGG_BOMB Grass, KARATE_CHOP Fighting, SLAM Dragon",
       "effect changes: DIZZY_PUNCH 10% confuse, TRI_ATTACK/FIRE_PUNCH 30% burn, ROCK_SLIDE/WATERFALL/SLAM 10% flinch, RAZOR_WIND/SKULL_BASH recharge like Hyper Beam, SKY_ATTACK/NIGHT_SHADE no longer special, TRANSFORM +1 priority",
       "FOCUS ENERGY functional at exactly 2x crit rate; LEECH SEED drains a flat 1/8",
-      "GHOST attacks use the Special stat; Ghost is now super effective against Psychic (fixes the Gen 1 chart bug)",
+      "GHOST attacks use the Special stat; Ghost is now super effective against Psychic, and Bug is no longer super effective against Poison (both fix Gen 1 chart bugs)",
       "a MODS-menu toggle (DRAGON PHYS) switches DRAGON moves to the physical stat, persisted in options.lua",
       "optional HARD MODE: forced SET style, no items in battle (Poké Balls excepted), level caps by gym badge (12/21/24/35/43/50/53/55, none after the 8th badge); offered on new game and toggleable in the OPTIONS menu",
       "27 species base stats rebalanced per pages 15-19",

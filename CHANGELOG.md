@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.10.3] - 2026-08-05
+
+### Fixed
+
+- The Poliwag line keeps its vanilla Gen 1 evolutions: Poliwag to
+  Poliwhirl at level 18, Poliwhirl to Poliwrath by **Water Stone**
+  (was wrongly set to a level-18 Poliwhirl -> Poliwrath evolution).
+- Bug attacks are no longer super effective against Poison; the Gen 1
+  chart bug is removed (Bug is now neutral to Poison).
+
 ## [1.10.2] - 2026-08-05
 
 ### Changed
