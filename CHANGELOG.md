@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.10.2] - 2026-08-05
+
+### Changed
+
+- The sibling-file loaders (learnsets/trainers/rematches, Hard Mode, Crystal
+  Tear) were deduplicated into one `loadSibling` helper (~45 lines removed,
+  same error logs).
+- `speciesId` and `constId` are now built in a single `pokemon:each()` pass
+  instead of two.
+- The forced-SET style wrap only forces when an options table exists, so a
+  stub or broken save can't crash it.
+- `gameData()` helper hoists the two repeated `src.core.Game.data` reads.
+
 ## [1.10.1] - 2026-08-04
 
 ### Changed
