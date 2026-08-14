@@ -3129,7 +3129,7 @@ encounters = {
       { 5, "Oddish" },
       { 6, "Metapod" },
       { 6, "Oddish" },
-      { 7, "Kakuna" },
+      { 7, "Pikachu" },
       { 8, "Pidgey" },
       { 9, "Pidgeotto" },
     },
