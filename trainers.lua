@@ -303,7 +303,7 @@ return {
       { {level = 56, species = "SLOWBRO"}, {level = 55, species = "CLOYSTER"}, {level = 55, species = "DEWGONG"}, {level = 56, species = "JYNX"}, {level = 57, species = "LAPRAS"} },
     } },
     ["OPP_LT_SURGE"] = { parties = {
-      { {level = 29, species = "RAICHU"} },
+      { {level = 22, species = "VOLTORB"}, {level = 23, species = "MAGNEMITE"}, {level = 24, species = "RAICHU"} },
     } },
     ["OPP_MISTY"] = { parties = {
       { {level = 19, species = "PSYDUCK"}, {level = 18, species = "GOLDEEN"}, {level = 21, species = "STARMIE"} },
