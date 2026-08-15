@@ -481,7 +481,7 @@ return function(mod)
     PONYTA = { baseStats = { speed = 100 } },
     RAPIDASH = { baseStats = { speed = 115 } },
     FARFETCHD = { baseStats = {
-      hp = 62, attack = 75, defense = 65, special = 68, speed = 70,
+      hp = 62, attack = 90, defense = 65, special = 68, speed = 70,
     } },
     MUK = { baseStats = { special = 85 } },
     ONIX = { baseStats = { hp = 75, attack = 80, special = 65, speed = 85 } },
